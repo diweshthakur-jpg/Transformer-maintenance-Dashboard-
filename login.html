@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CPP Transformer Maintenance System - Login</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;min-height:100%;font-family:Arial,sans-serif}
+body{
+ min-height:100vh;display:flex;align-items:center;justify-content:center;
+ background:#020711;color:#fff;padding:20px;
+}
+.card{
+ width:100%;max-width:420px;padding:30px 24px;
+ background:#071827;border:1px solid #20506a;border-radius:20px;
+ box-shadow:0 20px 60px #000;
+}
+.logo{
+ width:70px;height:70px;margin:0 auto 18px;border-radius:18px;
+ display:flex;align-items:center;justify-content:center;
+ font-size:34px;background:#092d42;border:1px solid #2b7898;color:#65dcff;
+}
+h1{text-align:center;font-size:22px;margin:0 0 7px}
+.sub{text-align:center;color:#8aaabd;font-size:12px;margin-bottom:25px}
+label{display:block;color:#9db9c8;font-size:12px;margin:0 0 6px}
+input{
+ width:100%;height:46px;padding:0 13px;border-radius:9px;
+ border:1px solid #28566c;background:#020b13;color:#fff;font-size:15px;
+ outline:none;
+}
+.field{margin-bottom:15px}
+.pass{position:relative}
+.pass input{padding-right:65px}
+.show{
+ position:absolute;right:6px;top:6px;height:34px;padding:0 9px;
+ border:0;border-radius:7px;background:#123347;color:#82ddff;
+}
+.login{
+ width:100%;height:47px;border:0;border-radius:9px;
+ background:linear-gradient(90deg,#087fd1,#08a8dc);
+ color:#fff;font-weight:bold;font-size:15px;
+}
+.error{
+ display:none;margin-top:13px;padding:10px;border-radius:8px;
+ background:#501522;border:1px solid #9b3047;color:#ffb5c0;
+ text-align:center;font-size:12px;
+}
+.note{text-align:center;color:#638092;font-size:10px;margin-top:18px}
+.reset{
+ display:block;text-align:right;margin:-5px 0 17px;color:#67d7ff;
+ font-size:12px;text-decoration:none;
+}
+#reset{display:none;margin-top:18px;padding-top:18px;border-top:1px solid #18394b}
+.choice{display:flex;gap:7px;margin-bottom:10px}
+.choice button{
+ flex:1;height:38px;border:1px solid #28566c;border-radius:8px;
+ background:#081d2b;color:#9edfff;
+}
+.choice .active{background:#0b4965;border-color:#52cfff}
+.reset button.send{
+ width:100%;height:42px;margin-top:10px;border:0;border-radius:8px;
+ background:#087fd1;color:#fff;font-weight:bold;
+}
+.small{font-size:10px;color:#688493;line-height:1.4;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="card">
+ <div class="logo">⚡</div>
+ <h1>CPP Transformer Maintenance System</h1>
+ <div class="sub">Captive Power Plant • Authorized Access</div>
+
+ <form id="loginForm" action="index.html?login=1" method="get">
+  <div class="field">
+   <label>Username</label>
+   <input id="username" autocomplete="username" required>
+  </div>
+
+  <div class="field">
+   <label>Password</label>
+   <div class="pass">
+    <input id="password" type="password" autocomplete="current-password" required>
+    <button class="show" type="button" id="showBtn">Show</button>
+   </div>
+  </div>
+
+  <a class="reset" href="#" id="forgot">Forgot / Change Password?</a>
+
+  <button class="login" type="submit" id="loginBtn">LOGIN →</button>
+  <div class="error" id="error">Invalid username or password.</div>
+ </form>
+
+ <div id="reset">
+  <label>Reset using</label>
+  <div class="choice">
+   <button type="button" id="emailBtn" class="active">Email OTP</button>
+   <button type="button" id="phoneBtn">Phone OTP</button>
+  </div>
+  <input id="contact" placeholder="Registered email">
+  <button class="send" type="button" id="sendOtp">SEND OTP</button>
+  <div class="small">Email/SMS OTP will be connected when the secure authentication backend is added.</div>
+ </div>
+
+ <div class="note">CPP Transformer Maintenance System</div>
+</div>
+
+<script>
+(function(){
+  const USER="admin";
+  const PASS="CPP@123";
+
+  const form=document.getElementById("loginForm");
+  const user=document.getElementById("username");
+  const pass=document.getElementById("password");
+  const error=document.getElementById("error");
+  const btn=document.getElementById("loginBtn");
+
+  document.getElementById("showBtn").onclick=function(){
+    if(pass.type==="password"){
+      pass.type="text"; this.textContent="Hide";
+    }else{
+      pass.type="password"; this.textContent="Show";
+    }
+  };
+
+  form.addEventListener("submit",function(e){
+    const ok = user.value.trim()===USER && pass.value===PASS;
+
+    if(ok){
+      try{
+        sessionStorage.setItem("cpp_logged_in","true");
+        sessionStorage.setItem("cpp_user",user.value.trim());
+      }catch(x){}
+
+      btn.textContent="OPENING DASHBOARD...";
+      btn.disabled=true;
+
+      // Do NOT prevent the native form navigation.
+      // action="index.html?login=1" opens the dashboard in Acode.
+      return true;
+    }
+
+    e.preventDefault();
+    error.style.display="block";
+    pass.value="";
+    pass.focus();
+    return false;
+  });
+
+  document.getElementById("forgot").onclick=function(e){
+    e.preventDefault();
+    const r=document.getElementById("reset");
+    r.style.display=r.style.display==="block"?"none":"block";
+  };
+
+  const emailBtn=document.getElementById("emailBtn");
+  const phoneBtn=document.getElementById("phoneBtn");
+  const contact=document.getElementById("contact");
+
+  emailBtn.onclick=function(){
+    emailBtn.classList.add("active");
+    phoneBtn.classList.remove("active");
+    contact.type="email";
+    contact.placeholder="Registered email";
+  };
+
+  phoneBtn.onclick=function(){
+    phoneBtn.classList.add("active");
+    emailBtn.classList.remove("active");
+    contact.type="tel";
+    contact.placeholder="Registered mobile number";
+  };
+
+  document.getElementById("sendOtp").onclick=function(){
+    if(!contact.value.trim()){
+      alert("Enter your registered email or mobile number.");
+      return;
+    }
+    alert("OTP interface is ready. Real OTP delivery will be connected with the authentication backend.");
+  };
+})();
+</script>
+</body>
+</html>

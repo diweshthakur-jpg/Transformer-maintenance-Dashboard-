@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>CPP Transformer Maintenance System</title>
+
+<style>
+
+/* =====================================================
+   RESET
+===================================================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+
+    min-height:100vh;
+
+    background:#020711;
+
+    color:#ffffff;
+
+    font-family:
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    overflow-x:hidden;
+}
+
+
+/* =====================================================
+   MAIN ATMOSPHERE
+===================================================== */
+
+body::before{
+
+    content:"";
+
+    position:fixed;
+
+    inset:0;
+
+    z-index:-10;
+
+    background:
+
+        radial-gradient(
+            ellipse at 50% 18%,
+            rgba(0,170,255,.13),
+            transparent 30%
+        ),
+
+        radial-gradient(
+            ellipse at 15% 55%,
+            rgba(0,90,180,.09),
+            transparent 35%
+        ),
+
+        radial-gradient(
+            ellipse at 85% 60%,
+            rgba(0,130,220,.07),
+            transparent 35%
+        ),
+
+        linear-gradient(
+            180deg,
+            #020914 0%,
+            #01050c 100%
+        );
+}
+
+
+/* subtle technical grid */
+
+body::after{
+
+    content:"";
+
+    position:fixed;
+
+    inset:0;
+
+    z-index:-9;
+
+    pointer-events:none;
+
+    background-image:
+
+        linear-gradient(
+            rgba(0,160,255,.025) 1px,
+            transparent 1px
+        ),
+
+        linear-gradient(
+            90deg,
+            rgba(0,160,255,.025) 1px,
+            transparent 1px
+        );
+
+    background-size:
+        45px 45px;
+
+    mask-image:
+        linear-gradient(
+            to bottom,
+            transparent,
+            black 15%,
+            black 70%,
+            transparent
+        );
+}
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.header{
+
+    height:74px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:
+        0 30px;
+
+    background:
+        rgba(1,7,15,.80);
+
+    border-bottom:
+        1px solid
+        rgba(80,190,255,.13);
+
+    backdrop-filter:
+        blur(15px);
+
+    position:sticky;
+
+    top:0;
+
+    z-index:100;
+}
+
+
+.brand{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+}
+
+
+.brand-icon{
+
+    width:42px;
+
+    height:42px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-radius:12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #007dff,
+            #00d8ff
+        );
+
+    box-shadow:
+        0 0 25px
+        rgba(0,180,255,.35);
+
+    font-size:21px;
+}
+
+
+.brand-name{
+
+    font-size:14px;
+
+    font-weight:700;
+
+    letter-spacing:.4px;
+}
+
+
+.brand-sub{
+
+    color:#45c8ff;
+
+    font-size:8px;
+
+    letter-spacing:2.5px;
+
+    margin-top:3px;
+}
+
+
+.status{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    padding:
+        8px 13px;
+
+    border-radius:30px;
+
+    border:
+        1px solid
+        rgba(0,200,255,.22);
+
+    background:
+        rgba(0,100,180,.10);
+
+    color:#70dcff;
+
+    font-size:9px;
+
+    font-weight:700;
+
+    letter-spacing:.4px;
+}
+
+
+.status-dot{
+
+    width:7px;
+
+    height:7px;
+
+    border-radius:50%;
+
+    background:#20ed79;
+
+    box-shadow:
+        0 0 11px
+        #20ed79;
+}
+
+
+/* =====================================================
+   PAGE
+===================================================== */
+
+.page{
+
+    width:
+        min(850px,92%);
+
+    margin:auto;
+
+    padding:
+        25px 0 55px;
+}
+
+
+/* =====================================================
+   HERO
+===================================================== */
+
+.hero{
+
+    position:relative;
+
+    height:365px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    justify-content:flex-end;
+
+    overflow:hidden;
+
+    margin-bottom:22px;
+}
+
+
+/* electrical glow behind transformer */
+
+.hero-glow{
+
+    position:absolute;
+
+    width:440px;
+
+    height:280px;
+
+    left:50%;
+
+    top:5px;
+
+    transform:translateX(-50%);
+
+    background:
+        radial-gradient(
+            ellipse,
+            rgba(0,170,255,.20),
+            rgba(0,90,180,.06) 45%,
+            transparent 72%
+        );
+
+    filter:blur(18px);
+
+}
+
+
+/* =====================================================
+   TRANSFORMER SVG
+===================================================== */
+
+.transformer{
+
+    position:absolute;
+
+    top:-8px;
+
+    left:50%;
+
+    transform:
+        translateX(-50%);
+
+    width:
+        min(610px,100%);
+
+    height:300px;
+
+    overflow:visible;
+}
+
+
+/* transformer body */
+
+.tr-body{
+
+    fill:
+        url(#bodyGradient);
+
+    stroke:#17648d;
+
+    stroke-width:2;
+}
+
+
+/* transformer highlights */
+
+.tr-highlight{
+
+    fill:none;
+
+    stroke:#2489b9;
+
+    stroke-width:2;
+
+    opacity:.7;
+}
+
+
+/* cooling fins */
+
+.fin{
+
+    stroke:#226987;
+
+    stroke-width:5;
+
+    opacity:.75;
+}
+
+
+/* =====================================================
+   ELECTRICITY
+===================================================== */
+
+.electric{
+
+    fill:none;
+
+    stroke-linecap:round;
+
+    stroke-linejoin:round;
+
+    stroke-dasharray:
+        12 10;
+
+    animation:
+        electricity
+        .65s
+        linear
+        infinite;
+}
+
+
+.blue-electric{
+
+    stroke:#00d9ff;
+
+    filter:
+        drop-shadow(0 0 4px #00d9ff)
+        drop-shadow(0 0 12px #008cff);
+}
+
+
+.orange-electric{
+
+    stroke:#ff9d27;
+
+    filter:
+        drop-shadow(0 0 4px #ff9d27)
+        drop-shadow(0 0 11px #ff6500);
+
+    animation-duration:.55s;
+}
+
+
+@keyframes electricity{
+
+    to{
+        stroke-dashoffset:-44;
+    }
+
+}
+
+
+/* =====================================================
+   ELECTRIC NODES
+===================================================== */
+
+.node{
+
+    fill:#00d9ff;
+
+    filter:
+        drop-shadow(0 0 5px #00d9ff)
+        drop-shadow(0 0 14px #008cff);
+
+    animation:
+        pulse
+        1s
+        infinite
+        alternate;
+}
+
+
+.orange-node{
+
+    fill:#ffad32;
+
+    filter:
+        drop-shadow(0 0 5px #ffad32)
+        drop-shadow(0 0 13px #ff6500);
+}
+
+
+@keyframes pulse{
+
+    from{
+        opacity:.45;
+        transform:scale(.8);
+    }
+
+    to{
+        opacity:1;
+        transform:scale(1.15);
+    }
+
+}
+
+
+/* =====================================================
+   HERO TITLE
+===================================================== */
+
+.hero-title{
+
+    position:relative;
+
+    z-index:5;
+
+    text-align:center;
+
+    margin-bottom:5px;
+
+    text-shadow:
+        0 5px 25px
+        rgba(0,0,0,.95);
+}
+
+
+.eyebrow{
+
+    color:#51caff;
+
+    font-size:9px;
+
+    font-weight:700;
+
+    letter-spacing:6px;
+
+    margin-bottom:8px;
+}
+
+
+.hero-title h1{
+
+    font-size:
+        clamp(
+            30px,
+            6vw,
+            46px
+        );
+
+    line-height:.95;
+
+    letter-spacing:-1.5px;
+
+    font-weight:800;
+}
+
+
+.hero-title h1 span{
+
+    display:block;
+
+    color:#08caff;
+
+    margin-top:5px;
+
+    text-shadow:
+        0 0 22px
+        rgba(0,190,255,.35);
+}
+
+
+.hero-title p{
+
+    color:#a1b5c8;
+
+    font-size:11px;
+
+    margin-top:11px;
+}
+
+
+/* =====================================================
+   SECTION LABEL
+===================================================== */
+
+.section-label{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+    margin:
+        0 0 12px 2px;
+
+    color:#65879f;
+
+    font-size:8px;
+
+    font-weight:700;
+
+    letter-spacing:3px;
+
+    text-transform:uppercase;
+}
+
+
+.section-label::before{
+
+    content:"";
+
+    width:25px;
+
+    height:1px;
+
+    background:#1baee5;
+
+    box-shadow:
+        0 0 7px
+        #00bfff;
+}
+
+
+/* =====================================================
+   MODULES
+===================================================== */
+
+.modules{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:9px;
+}
+
+
+/* =====================================================
+   MODULE CARD
+===================================================== */
+
+.module{
+
+    position:relative;
+
+    min-height:65px;
+
+    display:flex;
+
+    align-items:center;
+
+    padding:
+        8px 15px;
+
+    text-decoration:none;
+
+    color:#fff;
+
+    border-radius:14px;
+
+    background:
+
+        linear-gradient(
+            105deg,
+            rgba(3,24,43,.92),
+            rgba(4,19,34,.78)
+        );
+
+    border:
+        1px solid
+        rgba(69,170,225,.18);
+
+    box-shadow:
+
+        inset
+        0 1px 0
+        rgba(255,255,255,.045),
+
+        0 8px 28px
+        rgba(0,0,0,.30);
+
+    backdrop-filter:
+        blur(12px);
+
+    overflow:hidden;
+
+    transition:
+        transform .22s ease,
+        border-color .22s ease,
+        box-shadow .22s ease,
+        background .22s ease;
+}
+
+
+/* left energy rail */
+
+.module::before{
+
+    content:"";
+
+    position:absolute;
+
+    left:0;
+
+    top:0;
+
+    bottom:0;
+
+    width:3px;
+
+    background:
+        #00bfff;
+
+    box-shadow:
+        0 0 13px
+        #00bfff;
+
+    opacity:.75;
+}
+
+
+/* alternating amber rail */
+
+.module:nth-child(even)::before{
+
+    background:#ff9c21;
+
+    box-shadow:
+        0 0 13px
+        #ff7600;
+}
+
+
+/* hover */
+
+.module:hover{
+
+    transform:
+        translateX(-5px);
+
+    border-color:
+        rgba(0,205,255,.50);
+
+    background:
+
+        linear-gradient(
+            105deg,
+            rgba(0,65,110,.52),
+            rgba(4,25,44,.86)
+        );
+
+    box-shadow:
+
+        0 0 25px
+        rgba(0,160,255,.12),
+
+        0 13px 35px
+        rgba(0,0,0,.42);
+}
+
+
+/* =====================================================
+   MODULE ICON
+===================================================== */
+
+.icon{
+
+    width:42px;
+
+    height:42px;
+
+    min-width:42px;
+
+    margin-right:15px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-radius:11px;
+
+    background:
+        rgba(0,130,255,.10);
+
+    border:
+        1px solid
+        rgba(0,180,255,.25);
+
+    font-size:18px;
+
+    transition:.2s;
+}
+
+
+.module:nth-child(even) .icon{
+
+    background:
+        rgba(255,140,20,.07);
+
+    border-color:
+        rgba(255,157,35,.32);
+}
+
+
+.module:hover .icon{
+
+    transform:
+        scale(1.06);
+
+    box-shadow:
+        0 0 17px
+        rgba(0,190,255,.15);
+}
+
+
+/* =====================================================
+   MODULE TEXT
+===================================================== */
+
+.module-content{
+
+    flex:1;
+
+    min-width:0;
+}
+
+
+.module-title{
+
+    font-size:13px;
+
+    font-weight:700;
+
+    color:#f2f7fc;
+}
+
+
+.module-description{
+
+    margin-top:4px;
+
+    color:#8fa7ba;
+
+    font-size:9px;
+
+    line-height:1.3;
+}
+
+
+/* =====================================================
+   ARROW
+===================================================== */
+
+.arrow{
+
+    width:32px;
+
+    height:32px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-radius:50%;
+
+    color:#52caff;
+
+    font-size:18px;
+
+    transition:.2s;
+}
+
+
+.module:hover .arrow{
+
+    transform:
+        translateX(4px);
+
+    color:#fff;
+
+    background:
+        rgba(0,160,255,.11);
+}
+
+
+/* =====================================================
+   FOOTER
+===================================================== */
+
+.footer{
+
+    text-align:center;
+
+    margin-top:24px;
+
+    color:#536d82;
+
+    font-size:8px;
+
+    letter-spacing:.3px;
+}
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media(max-width:600px){
+
+    .header{
+
+        height:68px;
+
+        padding:
+            0 14px;
+    }
+
+
+    .brand-icon{
+
+        width:38px;
+
+        height:38px;
+
+        font-size:19px;
+    }
+
+
+    .brand-name{
+
+        font-size:11px;
+    }
+
+
+    .brand-sub{
+
+        font-size:6px;
+
+        letter-spacing:2px;
+    }
+
+
+    .status{
+
+        padding:
+            7px 9px;
+    }
+
+
+    .status-text{
+
+        display:none;
+    }
+
+
+    .page{
+
+        width:92%;
+
+        padding-top:10px;
+    }
+
+
+    .hero{
+
+        height:365px;
+
+        margin-bottom:12px;
+    }
+
+
+    .transformer{
+
+        width:560px;
+
+        max-width:none;
+
+        left:50%;
+
+        top:5px;
+    }
+
+
+    .hero-glow{
+
+        width:360px;
+
+        height:250px;
+    }
+
+
+    .hero-title{
+
+        margin-bottom:8px;
+    }
+
+
+    .eyebrow{
+
+        font-size:7px;
+
+        letter-spacing:4px;
+    }
+
+
+    .hero-title h1{
+
+        font-size:29px;
+    }
+
+
+    .hero-title p{
+
+        font-size:10px;
+    }
+
+
+    .section-label{
+
+        margin-top:2px;
+    }
+
+
+    .module{
+
+        min-height:63px;
+
+        padding:
+            8px 10px;
+    }
+
+
+    .icon{
+
+        width:39px;
+
+        height:39px;
+
+        min-width:39px;
+
+        margin-right:11px;
+
+        font-size:17px;
+    }
+
+
+    .module-title{
+
+        font-size:12px;
+    }
+
+
+    .module-description{
+
+        font-size:8px;
+    }
+
+
+    .arrow{
+
+        width:28px;
+
+        font-size:16px;
+    }
+
+}
+
+
+@media(max-width:370px){
+
+    .module-description{
+
+        display:none;
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
+<header class="header">
+
+    <div class="brand">
+
+        <div class="brand-icon">
+            ⚡
+        </div>
+
+        <div>
+
+            <div class="brand-name">
+                CPP TRANSFORMER
+            </div>
+
+            <div class="brand-sub">
+                MAINTENANCE SYSTEM
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="status">
+
+        <span class="status-dot"></span>
+
+        <span class="status-text">
+            SYSTEM ONLINE
+        </span>
+
+    </div>
+
+</header>
+
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<main class="page">
+
+
+<!-- =====================================================
+     TRANSFORMER HERO
+===================================================== -->
+
+<section class="hero">
+
+
+    <div class="hero-glow"></div>
+
+
+    <!-- ================================================
+         SVG TRANSFORMER
+    ================================================= -->
+
+    <svg
+        class="transformer"
+        viewBox="0 0 700 350"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+
+
+        <defs>
+
+            <!-- transformer metal -->
+
+            <linearGradient
+                id="bodyGradient"
+                x1="0"
+                y1="0"
+                x2="1"
+                y2="1"
+            >
+
+                <stop
+                    offset="0"
+                    stop-color="#193b51"
+                />
+
+                <stop
+                    offset=".45"
+                    stop-color="#0b2437"
+                />
+
+                <stop
+                    offset="1"
+                    stop-color="#061521"
+                />
+
+            </linearGradient>
+
+
+            <!-- glow -->
+
+            <filter id="blueGlow">
+
+                <feGaussianBlur
+                    stdDeviation="4"
+                    result="blur"
+                />
+
+                <feMerge>
+
+                    <feMergeNode
+                        in="blur"
+                    />
+
+                    <feMergeNode
+                        in="SourceGraphic"
+                    />
+
+                </feMerge>
+
+            </filter>
+
+
+            <filter id="orangeGlow">
+
+                <feGaussianBlur
+                    stdDeviation="3"
+                    result="blur"
+                />
+
+                <feMerge>
+
+                    <feMergeNode
+                        in="blur"
+                    />
+
+                    <feMergeNode
+                        in="SourceGraphic"
+                    />
+
+                </feMerge>
+
+            </filter>
+
+        </defs>
+
+
+        <!-- =================================================
+             GROUND SHADOW
+        ================================================== -->
+
+        <ellipse
+            cx="350"
+            cy="318"
+            rx="245"
+            ry="20"
+            fill="#000"
+            opacity=".65"
+        />
+
+
+        <!-- =================================================
+             TRANSFORMER BODY
+        ================================================== -->
+
+        <path
+            class="tr-body"
+            d="
+                M155 125
+                L185 105
+                L515 105
+                L545 125
+                L545 285
+                L155 285
+                Z
+            "
+        />
+
+
+        <!-- top plate -->
+
+        <path
+            d="
+                M155 125
+                L185 105
+                L515 105
+                L545 125
+                Z
+            "
+            fill="#18384d"
+            stroke="#237ca8"
+            stroke-width="2"
+        />
+
+
+        <!-- =================================================
+             COOLING FINS
+        ================================================== -->
+
+        <g class="fin">
+
+            <line x1="180" y1="145" x2="180" y2="270"/>
+            <line x1="198" y1="140" x2="198" y2="275"/>
+            <line x1="216" y1="140" x2="216" y2="275"/>
+            <line x1="234" y1="140" x2="234" y2="275"/>
+            <line x1="252" y1="140" x2="252" y2="275"/>
+            <line x1="270" y1="140" x2="270" y2="275"/>
+            <line x1="288" y1="140" x2="288" y2="275"/>
+            <line x1="306" y1="140" x2="306" y2="275"/>
+            <line x1="324" y1="140" x2="324" y2="275"/>
+            <line x1="342" y1="140" x2="342" y2="275"/>
+            <line x1="360" y1="140" x2="360" y2="275"/>
+            <line x1="378" y1="140" x2="378" y2="275"/>
+            <line x1="396" y1="140" x2="396" y2="275"/>
+            <line x1="414" y1="140" x2="414" y2="275"/>
+            <line x1="432" y1="140" x2="432" y2="275"/>
+            <line x1="450" y1="140" x2="450" y2="275"/>
+            <line x1="468" y1="140" x2="468" y2="275"/>
+            <line x1="486" y1="140" x2="486" y2="275"/>
+            <line x1="504" y1="140" x2="504" y2="275"/>
+            <line x1="522" y1="145" x2="522" y2="270"/>
+
+        </g>
+
+
+        <!-- =================================================
+             FRONT LABEL
+        ================================================== -->
+
+        <rect
+            x="265"
+            y="190"
+            width="170"
+            height="65"
+            rx="7"
+            fill="#03111e"
+            stroke="#147eae"
+            stroke-width="2"
+        />
+
+
+        <text
+            x="350"
+            y="218"
+            text-anchor="middle"
+            fill="#10caff"
+            font-size="22"
+            font-family="Arial"
+            font-weight="bold"
+        >
+            CPP
+        </text>
+
+
+        <text
+            x="350"
+            y="238"
+            text-anchor="middle"
+            fill="#a7c5d8"
+            font-size="9"
+            font-family="Arial"
+            letter-spacing="2"
+        >
+            POWER TRANSFORMER
+        </text>
+
+
+        <!-- =================================================
+             BUSHINGS
+        ================================================== -->
+
+
+        <!-- left bushing -->
+
+        <g>
+
+            <rect
+                x="205"
+                y="58"
+                width="25"
+                height="55"
+                rx="10"
+                fill="#172e40"
+                stroke="#55cfff"
+                stroke-width="2"
+            />
+
+            <line
+                x1="217"
+                y1="58"
+                x2="217"
+                y2="25"
+                stroke="#6edaff"
+                stroke-width="7"
+            />
+
+            <line
+                x1="202"
+                y1="47"
+                x2="232"
+                y2="47"
+                stroke="#2b617c"
+                stroke-width="4"
+            />
+
+            <line
+                x1="202"
+                y1="37"
+                x2="232"
+                y2="37"
+                stroke="#2b617c"
+                stroke-width="4"
+            />
+
+        </g>
+
+
+        <!-- center bushing -->
+
+        <g>
+
+            <rect
+                x="337"
+                y="45"
+                width="26"
+                height="68"
+                rx="10"
+                fill="#172e40"
+                stroke="#55cfff"
+                stroke-width="2"
+            />
+
+            <line
+                x1="350"
+                y1="45"
+                x2="350"
+                y2="10"
+                stroke="#6edaff"
+                stroke-width="7"
+            />
+
+            <line
+                x1="334"
+                y1="36"
+                x2="366"
+                y2="36"
+                stroke="#2b617c"
+                stroke-width="4"
+            />
+
+            <line
+                x1="334"
+                y1="25"
+                x2="366"
+                y2="25"
+                stroke="#2b617c"
+                stroke-width="4"
+            />
+
+        </g>
+
+
+        <!-- right bushing -->
+
+        <g>
+
+            <rect
+                x="475"
+                y="58"
+                width="25"
+                height="55"
+                rx="10"
+                fill="#172e40"
+                stroke="#55cfff"
+                stroke-width="2"
+            />
+
+            <line
+                x1="487"
+                y1="58"
+                x2="487"
+                y2="25"
+                stroke="#6edaff"
+                stroke-width="7"
+            />
+
+            <line
+                x1="472"
+                y1="47"
+                x2="502"
+                y2="47"
+                stroke="#2b617c"
+                stroke-width="4"
+            />
+
+            <line
+                x1="472"
+                y1="37"
+                x2="502"
+                y2="37"
+                stroke="#2b617c"
+                stroke-width="4"
+            />
+
+        </g>
+
+
+        <!-- =================================================
+             ELECTRICITY LEAVING TRANSFORMER
+        ================================================== -->
+
+
+        <!-- left -->
+
+        <path
+            class="electric blue-electric"
+            d="
+                M217 25
+                C185 0
+                160 20
+                137 2
+                C115 -15
+                100 10
+                78 -2
+            "
+            stroke-width="6"
+        />
+
+
+        <!-- centre -->
+
+        <path
+            class="electric orange-electric"
+            d="
+                M350 10
+                C320 -15
+                290 2
+                275 -20
+                C260 -40
+                230 -18
+                205 -30
+            "
+            stroke-width="5"
+        />
+
+
+        <!-- right -->
+
+        <path
+            class="electric blue-electric"
+            d="
+                M487 25
+                C520 0
+                548 20
+                575 3
+                C600 -13
+                625 10
+                650 -5
+            "
+            stroke-width="6"
+        />
+
+
+        <!-- =================================================
+             LOWER POWER FLOW
+        ================================================== -->
+
+        <path
+            class="electric orange-electric"
+            d="
+                M545 150
+                C590 125
+                610 150
+                640 130
+                C665 112
+                680 130
+                700 115
+            "
+            stroke-width="4"
+        />
+
+
+        <path
+            class="electric blue-electric"
+            d="
+                M545 180
+                C585 160
+                610 185
+                645 165
+                C675 148
+                685 170
+                710 150
+            "
+            stroke-width="5"
+        />
+
+
+        <!-- =================================================
+             ELECTRIC NODES
+        ================================================== -->
+
+        <circle
+            class="node"
+            cx="78"
+            cy="-2"
+            r="5"
+        />
+
+        <circle
+            class="orange-node"
+            cx="205"
+            cy="-30"
+            r="5"
+        />
+
+        <circle
+            class="node"
+            cx="650"
+            cy="-5"
+            r="5"
+        />
+
+        <circle
+            class="orange-node"
+            cx="700"
+            cy="115"
+            r="5"
+        />
+
+        <circle
+            class="node"
+            cx="710"
+            cy="150"
+            r="5"
+        />
+
+
+    </svg>
+
+
+    <!-- =================================================
+         TITLE
+    ================================================= -->
+
+    <div class="hero-title">
+
+        <div class="eyebrow">
+            CAPTIVE POWER PLANT
+        </div>
+
+        <h1>
+            TRANSFORMER
+            <span>MAINTENANCE</span>
+        </h1>
+
+        <p>
+            Maintenance Management Dashboard
+        </p>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     MODULE LABEL
+===================================================== -->
+
+<div class="section-label">
+    Maintenance Modules
+</div>
+
+
+
+<!-- =====================================================
+     MODULES
+===================================================== -->
+
+<section class="modules">
+
+
+    <a
+        href="transformers.html"
+        class="module"
+    >
+
+        <div class="icon">
+            ⚡
+        </div>
+
+        <div class="module-content">
+
+            <div class="module-title">
+                List of Transformers
+            </div>
+
+            <div class="module-description">
+                Transformer master data and equipment details
+            </div>
+
+        </div>
+
+        <div class="arrow">
+            →
+        </div>
+
+    </a>
+
+
+    <a
+        href="pm.html"
+        class="module"
+    >
+
+        <div class="icon">
+            🔧
+        </div>
+
+        <div class="module-content">
+
+            <div class="module-title">
+                PM Schedule
+            </div>
+
+            <div class="module-description">
+                Preventive maintenance planning and schedule
+            </div>
+
+        </div>
+
+        <div class="arrow">
+            →
+        </div>
+
+    </a>
+
+
+    <a
+        href="dga.html"
+        class="module"
+    >
+
+        <div class="icon">
+            ⚗
+        </div>
+
+        <div class="module-content">
+
+            <div class="module-title">
+                DGA Data
+            </div>
+
+            <div class="module-description">
+                Dissolved Gas Analysis records and trends
+            </div>
+
+        </div>
+
+        <div class="arrow">
+            →
+        </div>
+
+    </a>
+
+
+    <a
+        href="bdv.html"
+        class="module"
+    >
+
+        <div class="icon">
+            ◇
+        </div>
+
+        <div class="module-content">
+
+            <div class="module-title">
+                BDV Data
+            </div>
+
+            <div class="module-description">
+                Transformer oil breakdown voltage test records
+            </div>
+
+        </div>
+
+        <div class="arrow">
+            →
+        </div>
+
+    </a>
+
+
+    <a
+        href="cpri-overhauling.html"
+        class="module"
+    >
+
+        <div class="icon">
+            ▤
+        </div>
+
+        <div class="module-content">
+
+            <div class="module-title">
+                CPRI and OVERHAULING Reports
+            </div>
+
+            <div class="module-description">
+                CPRI and overhauling reports, inspections and observations
+            </div>
+
+        </div>
+
+        <div class="arrow">
+            →
+        </div>
+
+    </a>
+
+
+    <a
+        href="spares.html"
+        class="module"
+    >
+
+        <div class="icon">
+            ▣
+        </div>
+
+        <div class="module-content">
+
+            <div class="module-title">
+                List of Spares with Material Code
+            </div>
+
+            <div class="module-description">
+                Spare parts, inventory and material identification
+            </div>
+
+        </div>
+
+        <div class="arrow">
+            →
+        </div>
+
+    </a>
+
+
+    <a
+        href="shutdown.html"
+        class="module"
+    >
+
+        <div class="icon">
+            ⚙
+        </div>
+
+        <div class="module-content">
+
+            <div class="module-title">
+                Current Annual Shutdown
+            </div>
+
+            <div class="module-description">
+                Shutdown planning, activities and completion status
+            </div>
+
+        </div>
+
+        <div class="arrow">
+            →
+        </div>
+
+    </a>
+
+
+    <a
+        href="indents.html"
+        class="module"
+    >
+
+        <div class="icon">
+            🛒
+        </div>
+
+        <div class="module-content">
+
+            <div class="module-title">
+                Status of Current Indents
+            </div>
+
+            <div class="module-description">
+                Material indents, procurement and delivery status
+            </div>
+
+        </div>
+
+        <div class="arrow">
+            →
+        </div>
+
+    </a>
+
+
+
+
+</section>
+
+
+
+<div class="footer">
+
+    CPP Transformer Maintenance System
+    •
+    Captive Power Plant
+
+</div>
+
+
+</main>
+
+
+<script>
+/* CPP LOGIN GUARD */
+(function(){
+  try{
+    const params = new URLSearchParams(window.location.search);
+
+    /* Native form fallback from login.html */
+    if(params.get("login") === "1"){
+      sessionStorage.setItem("cpp_logged_in","true");
+      sessionStorage.setItem("cpp_user","admin");
+      try{
+        history.replaceState({}, document.title, "index.html");
+      }catch(e){}
+    }
+
+    if(sessionStorage.getItem("cpp_logged_in") !== "true"){
+      window.location.replace("login.html");
+    }
+  }catch(e){
+    try{
+      const p = new URLSearchParams(window.location.search);
+      if(p.get("login") !== "1"){
+        window.location.replace("login.html");
+      }
+    }catch(x){}
+  }
+})();
+</script>
+
+</body>
+
+</html>

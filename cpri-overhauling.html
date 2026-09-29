@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CPRI & OVERHAULING REPORTS</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#020711;color:#eef7ff;font-family:Arial}header{padding:20px;background:#061727;border-bottom:1px solid #16435f}h1{margin:0;font-size:23px}.sub{color:#8eb5ca;margin-top:5px}.wrap{max-width:1100px;margin:auto;padding:18px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:9px;padding:11px 15px;font-weight:bold;background:#087fd1;color:white}button.red{background:#b72c45}button.green{background:#07965d}select,input,textarea{width:100%;padding:11px;border-radius:8px;border:1px solid #24536a;background:#03101b;color:white}select{min-width:130px}.card{background:linear-gradient(145deg,#061421,#081d2d);border:1px solid #17435b;border-radius:14px;padding:17px;margin:16px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:600px){.grid{grid-template-columns:1fr}}label{display:block;color:#8fb5c9;font-size:12px;margin-bottom:5px}.upload{margin-top:14px;border:2px dashed #23617d;border-radius:12px;padding:25px;text-align:center;cursor:pointer}.upload input{display:none}.file{color:#70dcff;margin-top:10px;word-break:break-word}.table{overflow:auto}table{width:100%;border-collapse:collapse;min-width:750px}th,td{padding:11px;border-bottom:1px solid #183a4d;text-align:left;font-size:13px}th{color:#6fd5ff;background:#071b29}.actions{display:flex;gap:6px;flex-wrap:wrap}.actions button{padding:7px 10px;font-size:12px}.badge{background:#07364b;color:#8fe5ff;padding:4px 8px;border-radius:20px;font-size:11px}
+</style></head><body>
+<header><h1>📄 CPRI & OVERHAULING REPORTS</h1><div class="sub">CPP Transformer Maintenance System</div></header>
+<div class="wrap">
+<div class="toolbar"><button onclick="addNew()">＋ Add New</button><select id="year" onchange="render()"></select></div>
+<div class="card" id="form" style="display:none">
+<h2>Add / Edit Report</h2>
+<div class="grid"><div><label>Year</label><select id="fy"></select></div><div><label>Report Type</label><select id="type"><option>CPRI</option><option>OVERHAULING</option></select></div></div>
+<div class="upload" onclick="document.getElementById('pdf').click()"><input id="pdf" type="file" accept="application/pdf,.pdf" onchange="picked(event)"><b>📄 Upload PDF</b><div>Upload CPRI or OVERHAULING report PDF</div><div id="file" class="file"></div></div>
+<div style="margin-top:14px"><label>Remarks</label><textarea id="remarks" rows="4"></textarea></div>
+<div style="margin-top:14px;display:flex;gap:10px"><button class="green" onclick="save()">Save</button><button onclick="cancel()">Cancel</button></div>
+</div>
+<div class="card"><h2>Saved Reports</h2><div class="table"><table><thead><tr><th>S/N</th><th>Year</th><th>Type</th><th>PDF</th><th>Remarks</th><th>Action</th></tr></thead><tbody id="body"></tbody></table></div></div>
+</div>
+<script>
+const K='cpp_cpri_overhauling_v1';let data=JSON.parse(localStorage.getItem(K)||'[]'),edit=null,file=null;
+function years(){let y=new Date().getFullYear(),a='';for(let n=y-5;n<=y+15;n++)a+=`<option>${n}</option>`;year.innerHTML=fy.innerHTML=a;year.value=fy.value=y}
+function addNew(){edit=null;file=null;form.style.display='block';fy.value=year.value;type.value='CPRI';remarks.value='';pdf.value='';document.getElementById('file').textContent='';form.scrollIntoView({behavior:'smooth'})}
+function picked(e){file=e.target.files[0];document.getElementById('file').textContent=file?'✓ '+file.name:''}
+function save(){if(!edit&&!file)return alert('Please upload a PDF report.');let old=data.find(x=>x.id===edit);let r={id:edit||Date.now(),year:+fy.value,type:type.value,fileName:file?file.name:(old?.fileName||''),remarks:remarks.value.trim()};let i=data.findIndex(x=>x.id===r.id);i>=0?data[i]=r:data.unshift(r);localStorage.setItem(K,JSON.stringify(data));year.value=r.year;cancel();render()}
+function editRow(id){let r=data.find(x=>x.id===id);edit=id;form.style.display='block';fy.value=r.year;type.value=r.type;remarks.value=r.remarks||'';file=null;pdf.value='';document.getElementById('file').textContent='Current PDF: '+r.fileName;form.scrollIntoView({behavior:'smooth'})}
+function del(id){if(confirm('Delete this report?')){data=data.filter(x=>x.id!==id);localStorage.setItem(K,JSON.stringify(data));render()}}
+function view(id){let r=data.find(x=>x.id===id);alert('PDF: '+r.fileName+'\n\nThe actual PDF file will be opened from central storage after the online storage connection is added.')}
+function cancel(){form.style.display='none';edit=null;file=null}
+function render(){let y=+year.value,r=data.filter(x=>x.year===y);body.innerHTML=r.map((x,i)=>`<tr><td>${i+1}</td><td>${x.year}</td><td><span class="badge">${esc(x.type)}</span></td><td>${esc(x.fileName||'—')}</td><td>${esc(x.remarks||'—')}</td><td><div class="actions"><button onclick="view(${x.id})">View PDF</button><button onclick="editRow(${x.id})">Edit</button><button class="red" onclick="del(${x.id})">Delete</button></div></td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:25px;color:#789">No reports for this year.</td></tr>'}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}years();render();
+</script></body></html>
