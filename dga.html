@@ -1,0 +1,696 @@
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DGA Data | CPP Transformer Maintenance</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#020711;
+  --panel:#071827;
+  --panel2:#0a2033;
+  --line:rgba(75,190,255,.20);
+  --blue:#0b8cff;
+  --cyan:#19caff;
+  --green:#12d88a;
+  --orange:#ff9f2f;
+  --red:#ff5577;
+  --text:#f2f7fc;
+  --muted:#8fa7ba;
+}
+body{
+  min-height:100vh;
+  color:var(--text);
+  font-family:"Segoe UI",Arial,sans-serif;
+  background:
+    radial-gradient(ellipse at 50% 0%,rgba(0,150,255,.14),transparent 35%),
+    linear-gradient(180deg,#020914,#01050c);
+  overflow-x:hidden;
+}
+body:after{
+  content:"";
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,160,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,160,255,.025) 1px,transparent 1px);
+  background-size:45px 45px;
+}
+.header{
+  position:sticky;top:0;z-index:50;
+  min-height:74px;padding:12px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(1,7,15,.90);
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(14px);
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#087cff,#00d8ff);
+  box-shadow:0 0 25px rgba(0,180,255,.3);
+  font-size:21px
+}
+.brand-name{font-size:14px;font-weight:800}
+.brand-sub{font-size:8px;color:#45c8ff;letter-spacing:2.5px;margin-top:3px}
+.online{display:flex;align-items:center;gap:7px;color:#91aabc;font-size:11px}
+.dot{width:8px;height:8px;border-radius:50%;background:#13db89;box-shadow:0 0 12px #13db89}
+.page{width:94%;max-width:1500px;margin:auto;padding:22px 0 40px}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;margin-bottom:18px
+}
+.dashboard{
+  display:inline-flex;align-items:center;gap:8px;
+  text-decoration:none;color:white;font-weight:700;
+  padding:12px 18px;border-radius:12px;
+  background:linear-gradient(135deg,#173f62,#0b2942);
+  border:1px solid var(--line)
+}
+h1{font-size:clamp(28px,5vw,46px);margin-top:14px}
+.subtitle{color:#91aabd;margin-top:6px;font-size:15px}
+.analyze{
+  margin:20px 0;
+  padding:17px 20px;border-radius:16px;
+  border:1px solid rgba(25,202,255,.35);
+  background:linear-gradient(105deg,rgba(0,91,150,.28),rgba(5,27,47,.75));
+  display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap
+}
+.analyze strong{font-size:17px}
+.analyze span{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.analyze a{
+  text-decoration:none;color:#fff;font-weight:800;
+  padding:11px 17px;border-radius:10px;
+  background:linear-gradient(135deg,#087cff,#00bfff);
+  box-shadow:0 0 18px rgba(0,160,255,.2)
+}
+.toolbar{
+  display:flex;gap:10px;flex-wrap:wrap;margin:20px 0
+}
+button,.btn{
+  border:0;cursor:pointer;color:#fff;font:inherit;font-weight:700;
+  border-radius:11px;padding:12px 17px
+}
+.add{background:linear-gradient(135deg,#087cff,#00aaff)}
+.refresh{background:#102a40;border:1px solid var(--line)}
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px
+}
+.stat{
+  padding:18px;border-radius:16px;background:rgba(6,25,42,.75);
+  border:1px solid var(--line)
+}
+.stat small{display:block;color:#8fa7ba;text-transform:uppercase;letter-spacing:1px}
+.stat b{display:block;font-size:28px;margin-top:5px}
+.records{
+  border:1px solid var(--line);border-radius:18px;overflow:hidden;
+  background:rgba(4,17,30,.80)
+}
+.records-head{
+  padding:18px 20px;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;background:rgba(9,32,52,.75)
+}
+.records-head h2{font-size:19px}
+.records-head span{color:#45c8ff;font-size:12px}
+.table-wrap{overflow:auto}
+table{border-collapse:collapse;width:100%;min-width:1450px}
+th,td{
+  padding:13px 12px;border-bottom:1px solid rgba(75,190,255,.10);
+  text-align:left;white-space:nowrap;font-size:12px
+}
+th{
+  background:#0c2942;color:#9fdcff;text-transform:uppercase;
+  letter-spacing:.6px;position:sticky;top:0;z-index:2
+}
+td{color:#dbe9f3}
+tr:hover td{background:rgba(0,130,220,.055)}
+.num{font-weight:800;color:#54caff}
+.ppm{font-family:monospace;color:#fff}
+.actions{display:flex;gap:7px}
+.edit{background:#126ba7;padding:8px 11px}
+.del{background:#7d243b;padding:8px 11px}
+.pic{
+  width:55px;height:40px;object-fit:cover;border-radius:7px;
+  border:1px solid rgba(255,255,255,.18);cursor:pointer
+}
+.no-pic{color:#60798b;font-size:11px}
+.empty{text-align:center;padding:50px;color:#7790a3}
+.modal{
+  position:fixed;inset:0;z-index:100;display:none;
+  align-items:center;justify-content:center;padding:15px;
+  background:rgba(0,0,0,.76);backdrop-filter:blur(7px)
+}
+.modal.show{display:flex}
+.modal-box{
+  width:min(720px,100%);max-height:92vh;overflow:auto;
+  background:#061827;border:1px solid rgba(25,202,255,.35);
+  border-radius:20px;box-shadow:0 25px 80px #000;padding:22px
+}
+.modal-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:18px}
+.close{background:#152c3e;padding:8px 12px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+label{font-size:11px;color:#9bb3c4;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+input{
+  width:100%;padding:12px 13px;border-radius:10px;
+  border:1px solid #21445c;background:#03111e;color:#fff;outline:none
+}
+input:focus{border-color:#19caff;box-shadow:0 0 0 2px rgba(25,202,255,.08)}
+.upload{
+  padding:16px;border-radius:13px;border:1px dashed #28627e;
+  background:#04131f;text-align:center
+}
+.upload input{border:0;padding:0;background:transparent}
+.preview{
+  display:none;margin-top:12px;width:100%;max-height:230px;
+  object-fit:contain;border-radius:10px;border:1px solid var(--line)
+}
+.ocr-status{
+  margin-top:10px;padding:10px;border-radius:9px;
+  background:#081f31;color:#91c9e6;font-size:12px;display:none
+}
+.ocr-status.show{display:block}
+.gas-preview{
+  margin-top:15px;display:grid;grid-template-columns:repeat(2,1fr);gap:9px
+}
+.gas{
+  padding:10px;border-radius:9px;background:#071d2d;border:1px solid rgba(75,190,255,.13)
+}
+.gas small{display:block;color:#7893a6;font-size:9px}
+.gas b{display:block;margin-top:3px;font-size:14px}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.save{flex:1;background:linear-gradient(135deg,#079b69,#10d98b)}
+.cancel{background:#172c3c}
+.lightbox{
+  position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+  padding:20px;background:rgba(0,0,0,.9)
+}
+.lightbox.show{display:flex}
+.lightbox img{max-width:95%;max-height:90%;object-fit:contain;border-radius:10px}
+.lightbox button{position:absolute;right:18px;top:18px;background:#253747}
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  z-index:300;background:#092338;border:1px solid #1b9fd1;
+  color:white;padding:12px 18px;border-radius:10px;display:none;
+  box-shadow:0 10px 30px #000
+}
+@media(max-width:700px){
+  .header{padding:10px 14px}
+  .brand-name{font-size:12px}
+  .brand-sub{font-size:7px}
+  .online{display:none}
+  .page{width:94%;padding-top:15px}
+  .stats{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  .gas-preview{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+  <div class="brand">
+    <div class="brand-icon">⚡</div>
+    <div>
+      <div class="brand-name">CPP TRANSFORMER</div>
+      <div class="brand-sub">MAINTENANCE SYSTEM</div>
+    </div>
+  </div>
+  <div class="online"><span class="dot"></span>SYSTEM ONLINE</div>
+</header>
+
+<main class="page">
+
+  <div class="topbar">
+    <a class="dashboard" href="index.html">← Dashboard</a>
+  </div>
+
+  <h1>DGA Data</h1>
+  <p class="subtitle">Dissolved Gas Analysis — Transformer Test Records</p>
+
+  <div class="analyze">
+    <div>
+      <strong>⚗ Analyze DGA</strong>
+      <span>Open the DGA analysis system for interpretation of the recorded gas values.</span>
+    </div>
+    <a href="https://dga26.netlify.app/" target="_blank" rel="noopener">Open DGA Analysis →</a>
+  </div>
+
+  <div class="toolbar">
+    <button class="add" onclick="openAdd()">＋ Add New DGA</button>
+    <button class="refresh" onclick="render()">↻ Refresh</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><small>Total Records</small><b id="total">0</b></div>
+    <div class="stat"><small>Pictures Uploaded</small><b id="pics">0</b></div>
+    <div class="stat"><small>Latest Test</small><b id="latest">—</b></div>
+  </div>
+
+  <section class="records">
+    <div class="records-head">
+      <h2>DGA Records</h2>
+      <span>Upload one result picture → AI reads the gas columns → save online</span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>S/N</th>
+            <th>Equipment</th>
+            <th>Date</th>
+            <th>Picture</th>
+            <th>H₂</th>
+            <th>Moisture H₂O</th>
+            <th>CO₂</th>
+            <th>CO</th>
+            <th>C₂H₄</th>
+            <th>C₂H₆</th>
+            <th>CH₄</th>
+            <th>C₂H₂</th>
+            <th>TDCG</th>
+            <th>RS of Oil</th>
+            <th>Flammability</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="modalTitle">Add New DGA</h2>
+      <button class="close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Equipment Name</label>
+        <input id="equipment" placeholder="e.g. GT - 4">
+      </div>
+
+      <div class="field">
+        <label>Date</label>
+        <input id="testDate" type="date">
+      </div>
+
+      <div class="field full">
+        <label>Upload Gas Result Picture</label>
+        <div class="upload">
+          <input id="picture" type="file" accept="image/*" onchange="handleImage(this)">
+          <div style="color:#8fa7ba;font-size:12px;margin-top:8px">
+            Upload the DGA result picture. The system will read the values automatically.
+          </div>
+          <img id="preview" class="preview">
+        </div>
+        <div id="ocrStatus" class="ocr-status"></div>
+      </div>
+
+      <div class="field full">
+        <label>Recognized Readings — check and edit if required</label>
+        <div class="gas-preview" id="gasPreview"></div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal()">Cancel</button>
+      <button class="save" onclick="saveRecord()">💾 Save Record</button>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Supabase client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- OCR engine -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<script>
+const SUPABASE_URL = 'https://xdzroykambkmpnafeasc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_QYEMJXCzKRkK8Z8WLQw5Sg_7aPS5Sas';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const DGA_BUCKET = 'dga-images';
+
+const GAS = [
+  ['h2','Hydrogen','H₂'],
+  ['h2o','Moisture','H₂O'],
+  ['co2','Carbon Dioxide','CO₂'],
+  ['co','Carbon Monoxide','CO'],
+  ['c2h4','Ethylene','C₂H₄'],
+  ['c2h6','Ethane','C₂H₆'],
+  ['ch4','Methane','CH₄'],
+  ['c2h2','Acetylene','C₂H₂'],
+  ['tdcg','TDCG','TDCG'],
+  ['rsOil','RS of Oil','RS'],
+  ['flammability','Flammability in air','FLAM']
+];
+
+let records = [];
+let editingId = null;
+let currentPicture = '';
+let currentPicturePath = '';
+let pendingFile = null;
+let ocrValues = emptyValues();
+
+function emptyValues(){
+  const o = {};
+  GAS.forEach(g => o[g[0]] = '');
+  return o;
+}
+
+function setStatus(msg, type=''){
+  const s = document.getElementById('ocrStatus');
+  s.className = 'ocr-status show' + (type ? ' ' + type : '');
+  s.textContent = msg;
+}
+function clearStatus(){
+  const s = document.getElementById('ocrStatus');
+  s.className = 'ocr-status';
+  s.textContent = '';
+}
+
+async function loadRecords(){
+  const { data, error } = await supabaseClient
+    .from('dga_records')
+    .select('*')
+    .order('test_date', { ascending:false })
+    .order('created_at', { ascending:false });
+
+  if(error){
+    console.error(error);
+    toast('Could not load DGA records: ' + error.message);
+    records = [];
+  }else{
+    records = data || [];
+  }
+  render();
+}
+
+function render(){
+  const body = document.getElementById('tableBody');
+  body.innerHTML = '';
+
+  document.getElementById('total').textContent = records.length;
+  document.getElementById('pics').textContent = records.filter(r => r.picture_url).length;
+  document.getElementById('latest').textContent = records.length && records[0].test_date
+    ? formatDate(records[0].test_date) : '—';
+
+  if(!records.length){
+    body.innerHTML = '<tr><td colspan="16" class="empty">No DGA records yet. Click “Add New DGA” to create the first record.</td></tr>';
+    return;
+  }
+
+  records.forEach((r,i)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${i+1}</td>
+      <td><strong>${esc(r.equipment)}</strong></td>
+      <td>${formatDate(r.test_date)}</td>
+      <td>${r.picture_url
+        ? `<img class="pic" src="${escAttr(r.picture_url)}" onclick="openPicture('${r.id}')">`
+        : '<span class="no-pic">No picture</span>'}</td>
+      ${GAS.map(g => `<td class="ppm">${esc((g[0] === 'rsOil' ? r.rs_oil : r[g[0]]) || '—')}</td>`).join('')}
+      <td><div class="actions">
+        <button class="edit" onclick="openEdit('${r.id}')">✏ Edit</button>
+        <button class="del" onclick="deleteRecord('${r.id}')">🗑 Delete</button>
+      </div></td>`;
+    body.appendChild(tr);
+  });
+}
+
+function openAdd(){
+  editingId = null;
+  currentPicture = '';
+  currentPicturePath = '';
+  pendingFile = null;
+  ocrValues = emptyValues();
+
+  document.getElementById('modalTitle').textContent = 'Add New DGA';
+  document.getElementById('equipment').value = '';
+  document.getElementById('testDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('picture').value = '';
+  const preview = document.getElementById('preview');
+  preview.removeAttribute('src');
+  preview.style.display = 'none';
+  clearStatus();
+  renderGasInputs();
+  document.getElementById('modal').classList.add('show');
+}
+
+function openEdit(id){
+  const r = records.find(x => String(x.id) === String(id));
+  if(!r) return;
+
+  editingId = r.id;
+  currentPicture = r.picture_url || '';
+  currentPicturePath = extractStoragePath(r.picture_url || '');
+  pendingFile = null;
+  ocrValues = emptyValues();
+  GAS.forEach(g => ocrValues[g[0]] = (g[0] === 'rsOil' ? r.rs_oil : r[g[0]]) || '');
+
+  document.getElementById('modalTitle').textContent = 'Edit DGA Record';
+  document.getElementById('equipment').value = r.equipment || '';
+  document.getElementById('testDate').value = r.test_date || '';
+  document.getElementById('picture').value = '';
+
+  const preview = document.getElementById('preview');
+  if(currentPicture){
+    preview.src = currentPicture;
+    preview.style.display = 'block';
+  }else{
+    preview.removeAttribute('src');
+    preview.style.display = 'none';
+  }
+  clearStatus();
+  renderGasInputs();
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.remove('show');
+}
+
+function renderGasInputs(){
+  document.getElementById('gasPreview').innerHTML = GAS.map(g => `
+    <div class="gas">
+      <small>${g[1]} (${g[2]})</small>
+      <input id="gas_${g[0]}" value="${escAttr(ocrValues[g[0]] || '')}" placeholder="ppm / value"
+             oninput="ocrValues['${g[0]}']=this.value">
+    </div>`).join('');
+}
+
+async function handleImage(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  if(!file.type.startsWith('image/')){
+    toast('Please select an image file.');
+    input.value = '';
+    return;
+  }
+
+  pendingFile = file;
+  const preview = document.getElementById('preview');
+  preview.src = await fileToDataURL(file);
+  preview.style.display = 'block';
+
+  setStatus('⏳ Reading the DGA result picture with AI…');
+  try{
+    const dataUrl = preview.src;
+    const r = await fetch('/.netlify/functions/read-dga', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image:dataUrl, mime:file.type})
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || 'AI reading failed');
+
+    const x = data.data || data;
+    if(x.equipment) document.getElementById('equipment').value = x.equipment;
+    if(x.date) document.getElementById('testDate').value = x.date;
+    GAS.forEach(g => {
+      const key = g[0] === 'rsOil' ? 'rs_oil' : g[0];
+      const value = x[g[0]] ?? x[key];
+      if(value !== null && value !== undefined && String(value) !== ''){
+        ocrValues[g[0]] = String(value);
+      }
+    });
+    renderGasInputs();
+
+    const count = Object.values(ocrValues).filter(v => v !== '').length;
+    setStatus(`✓ AI reading completed. ${count} values detected. Check the readings and correct anything wrong before saving.`, 'ok');
+  }catch(err){
+    console.error(err);
+    setStatus('⚠ AI reading could not be completed. You can still edit the readings manually and save the picture.', 'err');
+  }
+}
+
+async function saveRecord(){
+  const equipment = document.getElementById('equipment').value.trim();
+  const test_date = document.getElementById('testDate').value;
+  if(!equipment){ toast('Please enter Equipment Name.'); return; }
+  if(!test_date){ toast('Please select the Date.'); return; }
+
+  GAS.forEach(g => {
+    const el = document.getElementById('gas_' + g[0]);
+    if(el) ocrValues[g[0]] = el.value.trim();
+  });
+
+  const saveBtn = document.querySelector('.modal-actions .save');
+  saveBtn.disabled = true;
+  saveBtn.textContent = '⏳ Saving...';
+
+  let newPictureUrl = currentPicture || '';
+  let newPicturePath = currentPicturePath || '';
+
+  try{
+    if(pendingFile){
+      const recordKey = editingId || crypto.randomUUID();
+      const ext = (pendingFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g,'');
+      const safeExt = ext || 'jpg';
+      const path = `dga/${recordKey}_${Date.now()}.${safeExt}`;
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from(DGA_BUCKET)
+        .upload(path, pendingFile, { upsert:false, contentType:pendingFile.type || 'image/jpeg' });
+      if(uploadError) throw uploadError;
+
+      const { data: publicData } = supabaseClient.storage.from(DGA_BUCKET).getPublicUrl(path);
+      newPictureUrl = publicData.publicUrl;
+      newPicturePath = path;
+    }
+
+    const payload = {
+      equipment,
+      test_date,
+      picture_url: newPictureUrl || null,
+      h2: ocrValues.h2 || null,
+      h2o: ocrValues.h2o || null,
+      co2: ocrValues.co2 || null,
+      co: ocrValues.co || null,
+      c2h4: ocrValues.c2h4 || null,
+      c2h6: ocrValues.c2h6 || null,
+      ch4: ocrValues.ch4 || null,
+      c2h2: ocrValues.c2h2 || null,
+      tdcg: ocrValues.tdcg || null,
+      rs_oil: ocrValues.rsOil || null,
+      flammability: ocrValues.flammability || null
+    };
+
+    let saved;
+    if(editingId){
+      const { data, error } = await supabaseClient
+        .from('dga_records').update(payload).eq('id', editingId).select().single();
+      if(error) throw error;
+      saved = data;
+
+      if(pendingFile && currentPicturePath && currentPicturePath !== newPicturePath){
+        await supabaseClient.storage.from(DGA_BUCKET).remove([currentPicturePath]);
+      }
+      toast('DGA record updated online.');
+    }else{
+      const { data, error } = await supabaseClient
+        .from('dga_records').insert(payload).select().single();
+      if(error) throw error;
+      saved = data;
+      toast('DGA record saved online.');
+    }
+
+    closeModal();
+    await loadRecords();
+  }catch(err){
+    console.error(err);
+    if(pendingFile && newPicturePath && newPicturePath !== currentPicturePath){
+      await supabaseClient.storage.from(DGA_BUCKET).remove([newPicturePath]);
+    }
+    toast('Save failed: ' + (err.message || err));
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = '💾 Save Record';
+  }
+}
+
+async function deleteRecord(id){
+  const r = records.find(x => String(x.id) === String(id));
+  if(!r) return;
+  if(!confirm(`Delete DGA record for "${r.equipment}"?`)) return;
+
+  try{
+    const { error } = await supabaseClient.from('dga_records').delete().eq('id', id);
+    if(error) throw error;
+
+    const path = extractStoragePath(r.picture_url || '');
+    if(path) await supabaseClient.storage.from(DGA_BUCKET).remove([path]);
+
+    toast('DGA record deleted online.');
+    await loadRecords();
+  }catch(err){
+    console.error(err);
+    toast('Delete failed: ' + (err.message || err));
+  }
+}
+
+function openPicture(id){
+  const r = records.find(x => String(x.id) === String(id));
+  if(!r || !r.picture_url) return;
+  document.getElementById('lightboxImg').src = r.picture_url;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
+
+function extractStoragePath(url){
+  const marker = `/storage/v1/object/public/${DGA_BUCKET}/`;
+  if(!url || !url.includes(marker)) return '';
+  return decodeURIComponent(url.split(marker)[1]);
+}
+function fileToDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function formatDate(d){
+  if(!d) return '—';
+  const p = String(d).split('-');
+  return p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : d;
+}
+function esc(v){
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escAttr(v){ return esc(v); }
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.style.display='none',2600);
+}
+
+loadRecords();
+</script>
+</body>
+</html>
+'''
+
+path = Path("/mnt/data/dga.html")
+path.write_text(html, encoding="utf-8")
+print(f"Created {path} ({path.stat().st_size:,} bytes)")
