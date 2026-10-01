@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CURRENT ANNUAL SHUTDOWN</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#020711;color:#eef7ff}
+header{padding:18px 20px;background:linear-gradient(135deg,#061727,#03101d);border-bottom:1px solid #16435f;position:sticky;top:0;z-index:5}
+h1{margin:0 0 5px;font-size:23px}.sub{color:#8eb5ca;font-size:13px}
+.wrap{max-width:1250px;margin:auto;padding:18px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+button{border:0;border-radius:9px;padding:10px 13px;font-weight:700;cursor:pointer;background:#087fd1;color:#fff}
+button.dark{background:#123247}button.red{background:#b72c45}
+button:disabled{opacity:.6;cursor:not-allowed}
+.card{background:linear-gradient(145deg,#061421,#081d2d);border:1px solid #17435b;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 8px 30px #0005}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:650px){.controls{grid-template-columns:1fr}}
+label{display:block;color:#8fb5c9;font-size:12px;margin-bottom:5px}
+select,input,textarea{width:100%;background:#03101b;color:#fff;border:1px solid #24536a;border-radius:8px;padding:10px;font-size:14px}
+input[type=number]{font-size:18px;font-weight:bold}
+textarea{min-height:70px}.tablewrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1050px}
+th,td{padding:9px;border-bottom:1px solid #183a4d;text-align:left;font-size:12px;vertical-align:middle}
+th{color:#6fd5ff;background:#071b29}
+.permit{display:flex;gap:5px;flex-wrap:wrap}
+.permit button{padding:7px 9px;font-size:11px;background:#102c3d;border:1px solid #24536a}
+.permit button.active{background:#087fd1;border-color:#57cfff;box-shadow:0 0 10px #087fd166}
+.edit-btn{padding:7px 12px;font-size:11px;background:#087fd1;border:1px solid #57cfff}
+.status{padding:8px 9px}.summary{display:flex;gap:10px;flex-wrap:wrap}
+.pill{background:#07364b;padding:8px 11px;border-radius:20px;color:#8fe5ff;font-size:12px}
+.message{margin-top:12px;padding:10px;border-radius:8px;display:none;font-size:13px}
+.message.ok{display:block;background:#073c2b;color:#8ff0bd;border:1px solid #176c4b}
+.message.err{display:block;background:#3b1820;color:#ffb7c1;border:1px solid #843442}
+.empty{text-align:center;padding:25px;color:#789}
+</style>
+</head>
+<body>
+<header>
+<h1>⚙ CURRENT ANNUAL SHUTDOWN</h1>
+<div class="sub">CPP Transformer Maintenance System</div>
+</header>
+
+<div class="wrap">
+<div class="toolbar">
+<button onclick="newShutdown()">＋ Add New</button>
+<button class="dark" id="saveBtn" onclick="saveAll()">Save Changes</button>
+<button class="red" onclick="deleteSavedShutdown()">Delete Saved Shutdown</button>
+</div>
+
+<div class="card">
+<div class="controls">
+<div>
+<label>Select Unit</label>
+<select id="unit">
+<option value="1">UNIT 1</option><option value="2">UNIT 2</option><option value="3">UNIT 3</option>
+<option value="4">UNIT 4</option><option value="5">UNIT 5</option><option value="6">UNIT 6</option>
+<option value="7">UNIT 7</option><option value="8">UNIT 8</option><option value="9">UNIT 9</option><option value="10">UNIT 10</option>
+</select>
+</div>
+<div>
+<label>Shutdown Year (2025–2040)</label>
+<input id="year" type="number" min="2025" max="2040" step="1" value="2026" inputmode="numeric">
+</div>
+</div>
+<div id="message" class="message"></div>
+</div>
+
+<div class="card">
+<div class="summary">
+<span class="pill" id="count">Activities: 0</span>
+<span class="pill" id="done">Completed: 0</span>
+</div>
+</div>
+
+<div class="card">
+<div class="tablewrap">
+<table>
+<thead><tr>
+<th>S/N</th><th>Following Work Permit / Activity</th><th>Work Permit</th>
+<th>Workstatus</th><th>Remarks</th><th>Action</th>
+</tr></thead>
+<tbody id="tbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://xdzroykambkmpnafeasc.supabase.co";
+const SUPABASE_KEY="sb_publishable_QYEMJXCzKRkK8Z8WLQw5Sg_7aPS5Sas";
+const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const TABLE="shutdown_records";
+
+const baseA=["GT","UAT","GT MAR BOX","UAT MAR BOX","Lightning Transformer","PCC A","ESP A","PCC B","ESP B"];
+let rows=[];
+
+function getYear(){
+ const el=document.getElementById("year");
+ let y=parseInt(el.value,10);
+ if(!Number.isInteger(y))y=2026;
+ if(y<2025)y=2025;
+ if(y>2040)y=2040;
+ el.value=y;
+ return y;
+}
+function activitiesForUnit(u){
+ const a=[...baseA];
+ for(let n=1;n<=6;n++)a.push("RECTIFORMER "+n+"A");
+ for(let n=1;n<=6;n++)a.push("RECTIFORMER "+n+"B");
+ if(u<=6)for(let n=1;n<=7;n++)a.push("RECTIFORMER "+n+"C");
+ return a;
+}
+function defaultRows(){
+ const unit=Number(document.getElementById("unit").value),year=getYear();
+ return activitiesForUnit(unit).map(name=>({
+  id:null,unit,shutdown_year:year,activity:name,
+  permit_applied:false,permit_issued:false,permit_returned:false,
+  workstatus:"",remarks:""
+ }));
+}
+function showMessage(text,type="ok"){
+ const m=document.getElementById("message");m.textContent=text;m.className="message "+type;
+}
+function clearMessage(){document.getElementById("message").className="message";}
+
+async function loadUnit(){
+ clearMessage();
+ const unit=Number(document.getElementById("unit").value),year=getYear();
+ document.getElementById("tbody").innerHTML='<tr><td colspan="6" class="empty">Loading...</td></tr>';
+ const {data,error}=await supabase.from(TABLE).select("*").eq("unit",unit).eq("shutdown_year",year).order("id",{ascending:true});
+ if(error){
+  rows=[];
+  document.getElementById("tbody").innerHTML='<tr><td colspan="6" class="empty">Unable to load records.</td></tr>';
+  showMessage("Supabase error: "+error.message,"err");return;
+ }
+ rows=(data&&data.length)?data:defaultRows();
+ render();
+}
+function render(){
+ const body=document.getElementById("tbody");
+ body.innerHTML=rows.length?rows.map((r,i)=>`
+ <tr>
+ <td>${i+1}</td><td><b>${esc(r.activity)}</b></td>
+ <td><div class="permit">
+ ${permitBtn(i,"permit_applied","Applied",r.permit_applied)}
+ ${permitBtn(i,"permit_issued","Issued/Received",r.permit_issued)}
+ ${permitBtn(i,"permit_returned","Returned",r.permit_returned)}
+ </div></td>
+ <td><input class="status" value="${esc(r.workstatus||"")}" placeholder="Workstatus" onchange="setField(${i},'workstatus',this.value)"></td>
+ <td><textarea onchange="setField(${i},'remarks',this.value)" placeholder="Remarks">${esc(r.remarks||"")}</textarea></td>
+ <td><button class="edit-btn" onclick="editRow(${i})">Edit</button></td>
+ </tr>`).join(""):'<tr><td colspan="6" class="empty">No activities.</td></tr>';
+ updateSummary();
+}
+function permitBtn(i,f,l,a){return `<button class="${a?"active":""}" onclick="togglePermit(${i},'${f}')">${l}</button>`}
+function togglePermit(i,f){if(rows[i]){rows[i][f]=!Boolean(rows[i][f]);render()}}
+function setField(i,f,v){if(rows[i])rows[i][f]=v}
+function editRow(i){
+ const r=rows[i];if(!r)return;
+ const a=prompt("Activity name:",r.activity||"");if(a===null)return;r.activity=a.trim()||r.activity;
+ const w=prompt("Workstatus:",r.workstatus||"");if(w!==null)r.workstatus=w;
+ const rm=prompt("Remarks:",r.remarks||"");if(rm!==null)r.remarks=rm;
+ render();
+}
+function newShutdown(){
+ const unit=Number(document.getElementById("unit").value),year=getYear();
+ if(rows.some(r=>r.id)){
+  if(!confirm("A saved shutdown is currently loaded for UNIT "+unit+" / "+year+". Create a new blank shutdown for this unit/year? Click Save Changes only when you want to replace the current saved records."))return;
+ }
+ rows=defaultRows();
+ render();
+ clearMessage();
+ showMessage("✓ New shutdown template loaded for UNIT "+unit+" / "+year+". Click Save Changes to store it.");
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+
+async function saveAll(show=true){
+ const unit=Number(document.getElementById("unit").value),year=getYear(),btn=document.getElementById("saveBtn");
+ btn.disabled=true;btn.textContent="Saving...";clearMessage();
+ try{
+  const payload=rows.map(r=>({...((r.id)?{id:r.id}:{}),unit,shutdown_year:year,activity:r.activity||"",
+   permit_applied:Boolean(r.permit_applied),permit_issued:Boolean(r.permit_issued),permit_returned:Boolean(r.permit_returned),
+   workstatus:r.workstatus||"",remarks:r.remarks||""}));
+  const {data,error}=await supabase.from(TABLE).upsert(payload,{onConflict:"id"}).select();
+  if(error)throw error;
+  rows=(data||rows).sort((a,b)=>(a.id||0)-(b.id||0));render();
+  if(show)showMessage("✓ Shutdown changes saved.");
+ }catch(e){showMessage("Could not save shutdown: "+e.message,"err")}
+ finally{btn.disabled=false;btn.textContent="Save Changes"}
+}
+async function deleteSavedShutdown(){
+ const unit=Number(document.getElementById("unit").value),year=getYear();
+ const {count,error}=await supabase.from(TABLE).select("id",{count:"exact",head:true}).eq("unit",unit).eq("shutdown_year",year);
+ if(error){showMessage("Could not check records: "+error.message,"err");return}
+ if(!count){showMessage("No saved shutdown record exists for UNIT "+unit+" / "+year);return}
+ if(!confirm("Delete the ENTIRE saved shutdown record for UNIT "+unit+" / "+year+"?"))return;
+ const {error:de}=await supabase.from(TABLE).delete().eq("unit",unit).eq("shutdown_year",year);
+ if(de){showMessage("Could not delete records: "+de.message,"err");return}
+ rows=defaultRows();render();showMessage("✓ Entire saved shutdown record deleted.");
+}
+function updateSummary(){
+ const completed=rows.filter(r=>String(r.workstatus||"").toLowerCase().includes("complete")).length;
+ document.getElementById("count").textContent="Activities: "+rows.length;
+ document.getElementById("done").textContent="Completed: "+completed;
+}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+document.addEventListener("DOMContentLoaded",()=>{
+ const y=document.getElementById("year");
+ y.value="2026";
+ document.getElementById("unit").addEventListener("change",loadUnit);
+ y.addEventListener("change",loadUnit);
+ y.addEventListener("blur",()=>{getYear();loadUnit()});
+ loadUnit();
+});
+</script>
+</body>
+</html>
