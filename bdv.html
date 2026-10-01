@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BDV Test | CPP Transformer Maintenance</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#020711;color:#eef7ff}
+header{padding:18px 20px;background:linear-gradient(135deg,#061727,#03101d);border-bottom:1px solid #16435f}
+h1{margin:0 0 5px;font-size:24px}.sub{color:#8eb5ca;font-size:13px}
+.wrap{max-width:1200px;margin:auto;padding:18px}
+.card{background:linear-gradient(145deg,#061421,#081d2d);border:1px solid #17435b;border-radius:14px;padding:17px;margin-bottom:16px;box-shadow:0 8px 30px #0005}
+button{border:0;border-radius:9px;padding:11px 15px;font-weight:700;cursor:pointer;background:#087fd1;color:#fff}
+button.green{background:#07965d}button.red{background:#b72c45}button.dark{background:#123247}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+@media(max-width:700px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:450px){.grid{grid-template-columns:1fr}}
+label{display:block;color:#8fb5c9;font-size:12px;margin-bottom:5px}
+input{width:100%;background:#03101b;color:#fff;border:1px solid #24536a;border-radius:8px;padding:11px;font-size:15px}
+.upload{margin-top:15px;border:2px dashed #23617d;padding:24px;text-align:center;border-radius:12px;cursor:pointer}
+.upload input{display:none}.preview{max-width:330px;max-height:230px;margin-top:12px;border-radius:8px;display:none;border:1px solid #28576d}
+.status{display:none;margin-top:12px;padding:11px;border-radius:8px}.ok{display:block;background:#073c2b;color:#9cffca}.err{display:block;background:#431923;color:#ffb1bf}.wait{display:block;background:#082b3b;color:#9fe7ff}
+.average{font-size:21px;font-weight:bold;color:#6fe1ff;background:#03101b;border:1px solid #24536a;border-radius:8px;padding:10px}
+.note{font-size:12px;color:#87aabd;line-height:1.5;margin-top:10px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px}
+th,td{padding:10px;border-bottom:1px solid #183a4d;text-align:left;font-size:13px}th{color:#6fd5ff;background:#071b29}
+.thumb{width:65px;height:45px;object-fit:cover;border-radius:5px;border:1px solid #28576d}
+.actions{display:flex;gap:6px}.actions button{padding:7px 10px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+<h1>⚡ BDV Test</h1>
+<div class="sub">CPP Transformer Maintenance System • Breakdown Voltage Test</div>
+</header>
+
+<div class="wrap">
+<div class="toolbar">
+<button onclick="newRecord()">＋ Add New BDV</button>
+<button class="dark" onclick="window.open('https://dga26.netlify.app/','_blank')">🔬 Analyze BDV ↗</button>
+</div>
+
+<div class="card">
+<h2 style="margin-top:0">BDV Test Record</h2>
+
+<div class="grid">
+<div><label>Equipment Name</label><input id="equipment" placeholder="Transformer name"></div>
+</div>
+
+<div class="upload" onclick="document.getElementById('photo').click()">
+<input id="photo" type="file" accept="image/*" capture="environment" onchange="readPicture(event)">
+<div style="font-size:18px">📷 Upload BDV Test Picture</div>
+<div class="note">Upload a clear picture of the BDV instrument/result. The page will attempt to read Test 1–6 automatically.</div>
+<img id="preview" class="preview">
+</div>
+
+<div id="status" class="status"></div>
+
+<div class="grid" style="margin-top:16px">
+<div><label>Test 1</label><input id="t1" type="number" step="0.01" oninput="calcAverage()"></div>
+<div><label>Test 2</label><input id="t2" type="number" step="0.01" oninput="calcAverage()"></div>
+<div><label>Test 3</label><input id="t3" type="number" step="0.01" oninput="calcAverage()"></div>
+<div><label>Test 4</label><input id="t4" type="number" step="0.01" oninput="calcAverage()"></div>
+<div><label>Test 5</label><input id="t5" type="number" step="0.01" oninput="calcAverage()"></div>
+<div><label>Test 6</label><input id="t6" type="number" step="0.01" oninput="calcAverage()"></div>
+<div><label>Average <span style="color:#6fe1ff">(Auto, editable)</span></label><input id="average" class="average" type="number" step="0.01" placeholder="Auto calculated"></div>
+</div>
+
+<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+<button class="green" onclick="saveRecord()">Save Record</button>
+<button class="dark" onclick="clearForm()">Clear</button>
+</div>
+
+<div class="note">
+Average is calculated automatically from Test 1–6. If the calculated Average is wrong for any reason, you can directly edit the Average before saving.
+</div>
+</div>
+
+<div class="card">
+<h2 style="margin-top:0">Saved BDV Records</h2>
+<div class="tablewrap">
+<table>
+<thead><tr>
+<th>Equipment</th><th>Picture</th><th>Test 1</th><th>Test 2</th><th>Test 3</th><th>Test 4</th><th>Test 5</th><th>Test 6</th><th>Average</th><th>Action</th>
+</tr></thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<script>
+const SUPABASE_URL='https://xdzroykambkmpnafeasc.supabase.co';
+const SUPABASE_KEY='sb_publishable_QYEMJXCzKRkK8Z8WLQw5Sg_7aPS5Sas';
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const TABLE='bdv_records';
+const BUCKET='bdv-images';
+let records=[];
+let editingId=null;
+let existingPictureUrl='';
+let averageManuallyEdited=false;
+
+function status(msg,type){
+ const s=document.getElementById('status');
+ s.className='status '+type;s.style.display='block';s.textContent=msg;
+}
+
+function newRecord(){clearForm();document.querySelector('.card').scrollIntoView({behavior:'smooth'});}
+
+function clearForm(){
+ editingId=null;existingPictureUrl='';averageManuallyEdited=false;
+ ['equipment','t1','t2','t3','t4','t5','t6','average'].forEach(id=>document.getElementById(id).value='');
+ document.getElementById('photo').value='';
+ const p=document.getElementById('preview');p.style.display='none';p.removeAttribute('src');
+ document.getElementById('status').style.display='none';
+}
+
+function calcAverage(){
+ if(averageManuallyEdited)return;
+ const vals=['t1','t2','t3','t4','t5','t6'].map(id=>parseFloat(document.getElementById(id).value)).filter(Number.isFinite);
+ document.getElementById('average').value=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'';
+}
+
+document.getElementById('average').addEventListener('input',()=>averageManuallyEdited=true);
+
+function readPicture(e){
+ const file=e.target.files[0];if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{document.getElementById('preview').src=reader.result;document.getElementById('preview').style.display='block';runOCR(reader.result);};
+ reader.readAsDataURL(file);
+}
+
+async function runOCR(dataUrl){
+ status('⏳ Reading BDV picture automatically…','wait');
+ try{
+  if(!window.Tesseract)await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+  const result=await Tesseract.recognize(dataUrl,'eng',{logger:m=>{if(m.status==='recognizing text')status('⏳ Reading picture… '+Math.round(m.progress*100)+'%','wait');}});
+  extractTests(result.data.text);
+ }catch(err){console.error(err);status('✕ Could not read the picture automatically. You can enter/correct the six values manually.','err');}
+}
+
+function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
+
+function extractTests(text){
+ const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);let found=0;
+ for(let i=0;i<6;i++){
+  const re=new RegExp('(?:test\\s*'+(i+1)+'\\b|'+(i+1)+'\\s*[:\\-])\\s*[:\\-]?\\s*(\\d+(?:\\.\\d+)?)','i');
+  const hit=lines.map(x=>x.match(re)).find(Boolean);
+  if(hit){document.getElementById('t'+(i+1)).value=hit[1];found++;}
+ }
+ if(found<6){
+  const nums=[];
+  lines.forEach(line=>{const matches=line.match(/(?<!\d)(\d{1,3}(?:\.\d{1,2})?)(?!\d)/g)||[];matches.forEach(n=>{const v=parseFloat(n);if(v>0&&v<1000)nums.push(n);});});
+  for(let i=0;i<6&&i<nums.length;i++){const el=document.getElementById('t'+(i+1));if(!el.value)el.value=nums[i];}
+ }
+ averageManuallyEdited=false;calcAverage();
+ const any=['t1','t2','t3','t4','t5','t6'].some(id=>document.getElementById(id).value);
+ status(any?'✓ Picture reading completed. Check Test 1–6 and correct anything necessary before saving.':'⚠ No BDV values could be confidently read. Please enter the six values.','err'===typeFor(any)?'err':'ok');
+}
+function typeFor(any){return any?'ok':'err';}
+
+function storagePathFromUrl(url){
+ if(!url)return null;
+ const marker='/storage/v1/object/public/'+BUCKET+'/';
+ const i=url.indexOf(marker);return i===-1?null:decodeURIComponent(url.substring(i+marker.length));
+}
+async function deleteStoredPicture(url){
+ const path=storagePathFromUrl(url);if(!path)return;
+ const {error}=await supabaseClient.storage.from(BUCKET).remove([path]);
+ if(error)console.warn('Storage delete warning:',error);
+}
+async function uploadPicture(file){
+ const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+ const path='bdv_'+Date.now()+'_'+Math.random().toString(36).slice(2,9)+'.'+ext;
+ const {error}=await supabaseClient.storage.from(BUCKET).upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||'image/jpeg'});
+ if(error)throw error;
+ return supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+async function saveRecord(){
+ const equipment=document.getElementById('equipment').value.trim();if(!equipment){alert('Enter Equipment Name.');return;}
+ const btn=document.getElementById('saveBtn');btn.disabled=true;status('⏳ Saving BDV record…','wait');
+ let newUrl=null;
+ try{
+  const file=document.getElementById('photo').files[0];
+  let pictureUrl=existingPictureUrl||null;
+  if(file){status('⏳ Uploading BDV picture…','wait');pictureUrl=await uploadPicture(file);newUrl=pictureUrl;}
+  const payload={equipment,picture_url:pictureUrl,test_1:document.getElementById('t1').value.trim()||null,test_2:document.getElementById('t2').value.trim()||null,test_3:document.getElementById('t3').value.trim()||null,test_4:document.getElementById('t4').value.trim()||null,test_5:document.getElementById('t5').value.trim()||null,test_6:document.getElementById('t6').value.trim()||null,average:document.getElementById('average').value.trim()||null};
+  let error=null;
+  if(editingId){
+   const r=await supabaseClient.from(TABLE).update(payload).eq('id',editingId);error=r.error;
+   if(!error&&file&&existingPictureUrl)await deleteStoredPicture(existingPictureUrl);
+  }else{const r=await supabaseClient.from(TABLE).insert([payload]);error=r.error;}
+  if(error){if(newUrl)await deleteStoredPicture(newUrl);throw error;}
+  await loadRecords();clearForm();status('✓ BDV record saved successfully.','ok');
+ }catch(err){console.error(err);status('✕ Save failed: '+(err.message||'Unknown error'),'err');}
+ finally{btn.disabled=false;}
+}
+
+async function loadRecords(){
+ const {data,error}=await supabaseClient.from(TABLE).select('*').order('created_at',{ascending:false});
+ if(error){console.error(error);status('✕ Could not load BDV records: '+error.message,'err');return;}
+ records=data||[];render();
+}
+
+function editRecord(id){
+ const r=records.find(x=>String(x.id)===String(id));if(!r)return;
+ editingId=r.id;existingPictureUrl=r.picture_url||'';averageManuallyEdited=!!r.average;
+ document.getElementById('equipment').value=r.equipment||'';
+ ['t1','t2','t3','t4','t5','t6'].forEach((id,i)=>document.getElementById(id).value=r['test_'+(i+1)]||'');
+ document.getElementById('average').value=r.average||'';document.getElementById('photo').value='';
+ const p=document.getElementById('preview');
+ if(r.picture_url){p.src=r.picture_url;p.style.display='block';}else{p.style.display='none';p.removeAttribute('src');}
+ status('Edit mode. Correct values and press Save Record.','ok');window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function deleteRecord(id){
+ const r=records.find(x=>String(x.id)===String(id));if(!r)return;
+ if(!confirm('Delete this BDV record and its picture?'))return;
+ status('⏳ Deleting BDV record…','wait');
+ try{
+  const {error}=await supabaseClient.from(TABLE).delete().eq('id',id);if(error)throw error;
+  if(r.picture_url)await deleteStoredPicture(r.picture_url);
+  await loadRecords();status('✓ BDV record deleted.','ok');
+ }catch(err){console.error(err);status('✕ Delete failed: '+(err.message||'Unknown error'),'err');}
+}
+
+function render(){
+ const tbody=document.getElementById('tbody');
+ if(!records.length){tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:#789">No BDV records yet.</td></tr>';return;}
+ tbody.innerHTML=records.map(r=>`<tr><td><b>${esc(r.equipment)}</b></td><td>${r.picture_url?`<a href="${esc(r.picture_url)}" target="_blank" rel="noopener"><img class="thumb" src="${esc(r.picture_url)}" alt="BDV"></a>`:'—'}</td><td>${esc(r.test_1)}</td><td>${esc(r.test_2)}</td><td>${esc(r.test_3)}</td><td>${esc(r.test_4)}</td><td>${esc(r.test_5)}</td><td>${esc(r.test_6)}</td><td><b>${esc(r.average)}</b></td><td><div class="actions"><button onclick="editRecord('${escAttr(r.id)}')">Edit</button><button class="red" onclick="deleteRecord('${escAttr(r.id)}')">Delete</button></div></td></tr>`).join('');
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escAttr(v){return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+loadRecords();
+</script>
+</body>
+</html>
