@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Status of Current Indents</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#020711;color:#eef7ff}
+header{padding:18px 20px;background:linear-gradient(135deg,#061727,#03101d);border-bottom:1px solid #16435f;position:sticky;top:0;z-index:5}
+h1{margin:0 0 5px;font-size:23px}.sub{color:#8eb5ca;font-size:13px}.wrap{max-width:1250px;margin:auto;padding:18px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}button{border:0;border-radius:9px;padding:11px 15px;font-weight:700;cursor:pointer;background:#087fd1;color:#fff}
+button.green{background:#07965d}button.dark{background:#123247}button.red{background:#b52d35}
+.card{background:linear-gradient(145deg,#061421,#081d2d);border:1px solid #17435b;border-radius:14px;padding:17px;margin-bottom:16px;box-shadow:0 8px 30px #0005}
+.grid{display:grid;grid-template-columns:2fr 1fr 1.2fr 1fr;gap:12px}@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:480px){.grid{grid-template-columns:1fr}}
+label{display:block;color:#8fb5c9;font-size:12px;margin-bottom:5px}
+input,select,textarea{width:100%;background:#03101b;color:#fff;border:1px solid #24536a;border-radius:8px;padding:10px;font-size:14px}
+textarea{min-height:70px;resize:vertical}.stages{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+@media(max-width:700px){.stages{grid-template-columns:1fr 1fr}}@media(max-width:420px){.stages{grid-template-columns:1fr}}
+.stage{background:#071b29;border:1px solid #17435b;border-radius:10px;padding:10px}.stage label{color:#70d8ff;font-weight:bold}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:1180px}
+th,td{padding:10px;border-bottom:1px solid #183a4d;text-align:left;font-size:12px;vertical-align:middle}th{color:#6fd5ff;background:#071b29}
+.badge{display:inline-block;padding:4px 8px;border-radius:20px;background:#07364b;color:#8fe5ff;font-size:11px}.actions{display:flex;gap:6px;flex-wrap:wrap}.actions button{padding:7px 10px;font-size:11px}
+#formCard{display:none}.summary{display:flex;gap:10px;flex-wrap:wrap}.pill{background:#07364b;padding:8px 12px;border-radius:20px;color:#8fe5ff;font-size:12px}
+#message{margin-top:10px;font-size:13px;min-height:18px}.success{color:#6ff0b1}.error{color:#ff8f98}.muted{color:#789}
+</style>
+</head>
+<body>
+<header><h1>📋 STATUS OF CURRENT INDENTS</h1><div class="sub">CPP Transformer Maintenance System</div></header>
+<div class="wrap">
+<div class="toolbar"><button onclick="addNew()">＋ Add New</button><button class="dark" onclick="loadRecords()">↻ Refresh</button></div>
+<div class="card" id="formCard">
+<h2 style="margin-top:0">Add / Edit Indent</h2>
+<div class="grid">
+<div><label>Material / Spare Name</label><input id="material" placeholder="Material / Spare name"></div>
+<div><label>Material Code</label><input id="code" placeholder="Material code"></div>
+<div><label>Type of Tender</label><select id="tender"><option value="">Select type</option><option>Open Tender</option><option>Limited Tender</option><option>Single Tender</option><option>Proprietary</option><option>Emergency</option><option>GeM</option><option>Other</option></select></div>
+<div><label>Quantity</label><input id="quantity" type="number" min="0" step="any" placeholder="Quantity"></div>
+</div>
+<div class="stages">
+<div class="stage"><label>PR</label><select id="pr"><option>Pending</option><option>Completed</option></select></div>
+<div class="stage"><label>Approval</label><select id="approval"><option>Pending</option><option>Completed</option></select></div>
+<div class="stage"><label>NIT</label><select id="nit"><option>Pending</option><option>Completed</option></select></div>
+<div class="stage"><label>PO</label><select id="po"><option>Pending</option><option>Completed</option></select></div>
+</div>
+<div class="grid" style="margin-top:12px">
+<div><label>Delivery</label><select id="delivery"><option>Pending</option><option>In Progress</option><option>Completed</option></select></div>
+<div style="grid-column:span 3"><label>Remarks</label><textarea id="remarks" placeholder="Enter remarks"></textarea></div>
+</div>
+<div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap"><button class="green" onclick="saveRecord()">Save Record</button><button class="dark" onclick="cancel()">Cancel</button></div>
+<div id="message"></div>
+</div>
+<div class="card"><div class="summary"><span class="pill" id="total">Total: 0</span></div></div>
+<div class="card"><h2 style="margin-top:0">Current Indents</h2><div class="tablewrap"><table>
+<thead><tr><th>S/N</th><th>Material / Spare Name</th><th>Material Code</th><th>Type of Tender</th><th>Quantity</th><th>PR</th><th>Approval</th><th>NIT</th><th>PO</th><th>Delivery</th><th>Remarks</th><th>Actions</th></tr></thead>
+<tbody id="tbody"></tbody></table></div></div>
+</div>
+<script>
+const SUPABASE_URL='https://xdzroykambkmpnafeasc.supabase.co';
+const SUPABASE_KEY='sb_publishable_QYEMJXCzKRkK8Z8WLQw5Sg_7aPS5Sas';
+const TABLE='current_indents';
+let records=[],editingId=null;
+const headers={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'};
+const $=id=>document.getElementById(id);
+function setMessage(text,type='muted'){const el=$('message');el.textContent=text||'';el.className=type;}
+async function loadRecords(){
+setMessage('Loading...','muted');
+try{const res=await fetch(SUPABASE_URL+'/rest/v1/'+TABLE+'?select=*&order=created_at.desc',{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}});
+if(!res.ok)throw new Error(await res.text()||('HTTP '+res.status));
+records=await res.json();render();setMessage('✓ Records loaded from Supabase.','success');
+}catch(err){console.error(err);records=[];render();setMessage('Supabase error: '+err.message,'error');}}
+function addNew(){
+editingId=null;$('formCard').style.display='block';$('material').value='';$('code').value='';$('tender').selectedIndex=0;$('quantity').value='';
+$('pr').value='Pending';$('approval').value='Pending';$('nit').value='Pending';$('po').value='Pending';$('delivery').value='Pending';$('remarks').value='';
+setMessage('');$('formCard').scrollIntoView({behavior:'smooth'});}
+async function saveRecord(){
+const material=$('material').value.trim();if(!material){setMessage('Enter Material / Spare Name.','error');return;}
+const q=$('quantity').value.trim();
+const payload={material:material,code:$('code').value.trim(),tender:$('tender').value,quantity:q===''?null:Number(q),pr:$('pr').value,approval:$('approval').value,nit:$('nit').value,po:$('po').value,delivery:$('delivery').value,remarks:$('remarks').value.trim()};
+setMessage(editingId?'Updating...':'Saving...','muted');
+try{
+let res;
+if(editingId){res=await fetch(SUPABASE_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(editingId),{method:'PATCH',headers:{...headers,'Prefer':'return=representation'},body:JSON.stringify(payload)});}
+else{res=await fetch(SUPABASE_URL+'/rest/v1/'+TABLE,{method:'POST',headers:{...headers,'Prefer':'return=representation'},body:JSON.stringify(payload)});}
+if(!res.ok)throw new Error(await res.text()||('HTTP '+res.status));
+$('formCard').style.display='none';editingId=null;setMessage('');await loadRecords();
+}catch(err){console.error(err);setMessage('Supabase error: '+err.message,'error');}}
+function editRecord(id){
+const r=records.find(x=>String(x.id)===String(id));if(!r)return;editingId=r.id;$('formCard').style.display='block';
+$('material').value=r.material||'';$('code').value=r.code||'';$('tender').value=r.tender||'';$('quantity').value=r.quantity??'';
+$('pr').value=r.pr||'Pending';$('approval').value=r.approval||'Pending';$('nit').value=r.nit||'Pending';$('po').value=r.po||'Pending';$('delivery').value=r.delivery||'Pending';$('remarks').value=r.remarks||'';
+setMessage('');$('formCard').scrollIntoView({behavior:'smooth'});}
+async function deleteRecord(id){
+const r=records.find(x=>String(x.id)===String(id));if(!r)return;
+if(!confirm('Delete this entire indent record?\n\n'+(r.material||'')))return;setMessage('Deleting...','muted');
+try{const res=await fetch(SUPABASE_URL+'/rest/v1/'+TABLE+'?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:{...headers,'Prefer':'return=minimal'}});
+if(!res.ok)throw new Error(await res.text()||('HTTP '+res.status));await loadRecords();}
+catch(err){console.error(err);setMessage('Supabase error: '+err.message,'error');}}
+function cancel(){$('formCard').style.display='none';editingId=null;setMessage('');}
+function badge(v){return '<span class="badge">'+esc(v||'Pending')+'</span>';}
+function render(){
+$('tbody').innerHTML=records.map((r,i)=>`<tr><td>${i+1}</td><td><b>${esc(r.material)}</b></td><td>${esc(r.code||'—')}</td><td>${esc(r.tender||'—')}</td><td>${r.quantity===null||r.quantity===undefined||r.quantity===''?'—':esc(r.quantity)}</td><td>${badge(r.pr)}</td><td>${badge(r.approval)}</td><td>${badge(r.nit)}</td><td>${badge(r.po)}</td><td>${badge(r.delivery)}</td><td>${esc(r.remarks||'—')}</td><td><div class="actions"><button onclick="editRecord(${Number(r.id)})">Edit</button><button class="red" onclick="deleteRecord(${Number(r.id)})">Delete</button></div></td></tr>`).join('')||'<tr><td colspan="12" style="text-align:center;padding:25px;color:#789">No current indents added.</td></tr>';
+$('total').textContent='Total: '+records.length;}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+loadRecords();
+</script>
+</body></html>
