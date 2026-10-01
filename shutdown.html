@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>CURRENT ANNUAL SHUTDOWN</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#020711;color:#eef7ff}
+header{padding:18px 20px;background:linear-gradient(135deg,#061727,#03101d);border-bottom:1px solid #16435f;position:sticky;top:0;z-index:10}
+h1{margin:0 0 5px;font-size:23px}.sub{color:#8eb5ca;font-size:13px}
+.wrap{max-width:1250px;margin:auto;padding:18px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+button{border:0;border-radius:9px;padding:10px 13px;font-weight:700;cursor:pointer;background:#087fd1;color:#fff}
+button.dark{background:#123247}button.red{background:#b72c45}
+button:disabled{opacity:.55;cursor:not-allowed}
+.card{background:linear-gradient(145deg,#061421,#081d2d);border:1px solid #17435b;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 8px 30px #0005}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:650px){.controls{grid-template-columns:1fr}}
+label{display:block;color:#8fb5c9;font-size:12px;margin-bottom:5px}
+select,input,textarea{width:100%;background:#03101b;color:#fff;border:1px solid #24536a;border-radius:8px;padding:10px;font-size:14px}
+select option{background:#03101b;color:#fff}
+textarea{min-height:70px;resize:vertical}
+.tablewrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1050px}
+th,td{padding:9px;border-bottom:1px solid #183a4d;text-align:left;font-size:12px;vertical-align:middle}
+th{color:#6fd5ff;background:#071b29;position:sticky;top:0}
+.permit{display:flex;gap:5px;flex-wrap:wrap}
+.permit button{padding:7px 9px;font-size:11px;background:#102c3d;border:1px solid #24536a}
+.permit button.active{background:#087fd1;border-color:#57cfff;box-shadow:0 0 10px #087fd166}
+.edit-btn{padding:7px 12px;font-size:11px;background:#087fd1;border:1px solid #57cfff}
+.status{padding:8px 9px}
+.summary{display:flex;gap:10px;flex-wrap:wrap}
+.pill{background:#07364b;padding:8px 11px;border-radius:20px;color:#8fe5ff;font-size:12px}
+.note{color:#87aabd;font-size:12px;line-height:1.5}
+.message{margin-top:12px;padding:10px;border-radius:8px;display:none;font-size:13px;line-height:1.4}
+.message.ok{display:block;background:#073c2b;color:#8ff0bd;border:1px solid #176c4b}
+.message.err{display:block;background:#3b1820;color:#ffb7c1;border:1px solid #843442}
+.empty{text-align:center;padding:25px;color:#789}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>⚙ CURRENT ANNUAL SHUTDOWN</h1>
+  <div class="sub">CPP Transformer Maintenance System</div>
+</header>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <button id="newButton" onclick="newShutdown()">＋ Add New</button>
+    <button class="dark" id="saveButton" onclick="saveAll()">Save Changes</button>
+    <button class="red" id="deleteButton" onclick="deleteSavedShutdown()">Delete Saved Shutdown</button>
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <div>
+        <label>Select Unit</label>
+        <select id="unit">
+          <option value="1">UNIT 1</option>
+          <option value="2">UNIT 2</option>
+          <option value="3">UNIT 3</option>
+          <option value="4">UNIT 4</option>
+          <option value="5">UNIT 5</option>
+          <option value="6">UNIT 6</option>
+          <option value="7">UNIT 7</option>
+          <option value="8">UNIT 8</option>
+          <option value="9">UNIT 9</option>
+          <option value="10">UNIT 10</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Shutdown Year</label>
+        <select id="year"></select>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:12px">
+      Select a unit and shutdown year. Saved records are stored centrally in Supabase.
+    </div>
+    <div id="message" class="message"></div>
+  </div>
+
+  <div class="card">
+    <div class="summary">
+      <span class="pill" id="count">Activities: 0</span>
+      <span class="pill" id="done">Completed: 0</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>S/N</th>
+            <th>Following Work Permit / Activity</th>
+            <th>Work Permit</th>
+            <th>Workstatus</th>
+            <th>Remarks</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="6" class="empty">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+"use strict";
+
+/* =========================================================
+   SUPABASE CONNECTION
+========================================================= */
+const SUPABASE_URL = "https://xdzroykambkmpnafeasc.supabase.co";
+const SUPABASE_KEY = "sb_publishable_QYEMJXCzKRkK8Z8WLQw5Sg_7aPS5Sas";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TABLE = "shutdown_records";
+
+/* =========================================================
+   IMPORTANT TABLE COLUMNS USED BY THIS PAGE
+
+   id                 int8
+   created_at         timestamptz
+   unit               int4
+   shutdown_year      int4
+   activity           text
+   permit_applied     bool
+   permit_issued      bool
+   permit_returned    bool
+   workstatus         text
+   remarks            text
+========================================================= */
+
+const baseActivities = [
+  "GT",
+  "UAT",
+  "GT MAR BOX",
+  "UAT MAR BOX",
+  "Lightning Transformer",
+  "PCC A",
+  "ESP A",
+  "PCC B",
+  "ESP B"
+];
+
+let rows = [];
+let savedRowsExist = false;
+let dirty = false;
+let loading = false;
+let saving = false;
+
+/* =========================================================
+   YEAR
+========================================================= */
+function setupYears(){
+  const select = document.getElementById("year");
+  const current = new Date().getFullYear();
+
+  select.innerHTML = "";
+
+  for(let y = current - 2; y <= current + 10; y++){
+    const option = document.createElement("option");
+    option.value = String(y);
+    option.textContent = String(y);
+    select.appendChild(option);
+  }
+
+  select.value = String(current);
+}
+
+/* =========================================================
+   ACTIVITIES
+========================================================= */
+function activitiesForUnit(unit){
+  const activities = [...baseActivities];
+
+  // Rectiformer A: 1A to 6A
+  for(let n = 1; n <= 6; n++){
+    activities.push("RECTIFORMER " + n + "A");
+  }
+
+  // Rectiformer B: 1B to 6B
+  for(let n = 1; n <= 6; n++){
+    activities.push("RECTIFORMER " + n + "B");
+  }
+
+  // Rectiformer C: 1C to 7C for Unit 1-6
+  if(unit <= 6){
+    for(let n = 1; n <= 7; n++){
+      activities.push("RECTIFORMER " + n + "C");
+    }
+  }
+
+  return activities;
+}
+
+function defaultRows(){
+  const unit = Number(document.getElementById("unit").value);
+  const year = Number(document.getElementById("year").value);
+
+  return activitiesForUnit(unit).map(function(activity){
+    return {
+      id: null,
+      unit: unit,
+      shutdown_year: year,
+      activity: activity,
+      permit_applied: false,
+      permit_issued: false,
+      permit_returned: false,
+      workstatus: "",
+      remarks: ""
+    };
+  });
+}
+
+/* =========================================================
+   UI HELPERS
+========================================================= */
+function showMessage(text, type){
+  const el = document.getElementById("message");
+  el.textContent = text;
+  el.className = "message " + (type || "ok");
+}
+
+function clearMessage(){
+  const el = document.getElementById("message");
+  el.textContent = "";
+  el.className = "message";
+}
+
+function setBusy(isBusy){
+  saving = isBusy;
+  document.getElementById("newButton").disabled = isBusy;
+  document.getElementById("saveButton").disabled = isBusy;
+  document.getElementById("deleteButton").disabled = isBusy;
+  document.getElementById("unit").disabled = isBusy;
+  document.getElementById("year").disabled = isBusy;
+
+  document.getElementById("saveButton").textContent =
+    isBusy ? "Saving..." : "Save Changes";
+}
+
+function escapeHtml(value){
+  return String(value ?? "").replace(/[&<>"']/g, function(ch){
+    return {
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    }[ch];
+  });
+}
+
+/* =========================================================
+   LOAD
+========================================================= */
+async function loadUnit(){
+  if(saving) return;
+
+  loading = true;
+  clearMessage();
+
+  const unit = Number(document.getElementById("unit").value);
+  const year = Number(document.getElementById("year").value);
+
+  document.getElementById("tbody").innerHTML =
+    '<tr><td colspan="6" class="empty">Loading...</td></tr>';
+
+  const result = await db
+    .from(TABLE)
+    .select("*")
+    .eq("unit", unit)
+    .eq("shutdown_year", year)
+    .order("id", {ascending:true});
+
+  loading = false;
+
+  if(result.error){
+    rows = [];
+    savedRowsExist = false;
+    dirty = false;
+
+    document.getElementById("tbody").innerHTML =
+      '<tr><td colspan="6" class="empty">Unable to load records.</td></tr>';
+
+    showMessage(
+      "Supabase error while loading: " + result.error.message,
+      "err"
+    );
+    updateSummary();
+    return;
+  }
+
+  if(result.data && result.data.length > 0){
+    rows = result.data.map(normalizeRow);
+    savedRowsExist = true;
+    dirty = false;
+    render();
+    showMessage(
+      "✓ Saved shutdown loaded for UNIT " + unit + " / " + year + ".",
+      "ok"
+    );
+  }else{
+    rows = defaultRows();
+    savedRowsExist = false;
+    dirty = false;
+    render();
+    showMessage(
+      "No saved shutdown found for UNIT " + unit + " / " + year +
+      ". Click Add New to create it.",
+      "ok"
+    );
+  }
+}
+
+/* =========================================================
+   NORMALIZE
+========================================================= */
+function normalizeRow(row){
+  return {
+    id: row.id ?? null,
+    unit: Number(row.unit),
+    shutdown_year: Number(row.shutdown_year),
+    activity: String(row.activity ?? ""),
+    permit_applied: Boolean(row.permit_applied),
+    permit_issued: Boolean(row.permit_issued),
+    permit_returned: Boolean(row.permit_returned),
+    workstatus: String(row.workstatus ?? ""),
+    remarks: String(row.remarks ?? "")
+  };
+}
+
+/* =========================================================
+   RENDER
+========================================================= */
+function render(){
+  const body = document.getElementById("tbody");
+
+  if(!rows.length){
+    body.innerHTML =
+      '<tr><td colspan="6" class="empty">No activities.</td></tr>';
+    updateSummary();
+    return;
+  }
+
+  body.innerHTML = rows.map(function(row, index){
+    return `
+      <tr>
+        <td>${index + 1}</td>
+
+        <td>
+          <b>${escapeHtml(row.activity)}</b>
+        </td>
+
+        <td>
+          <div class="permit">
+            ${permitButton(index, "permit_applied", "Applied", row.permit_applied)}
+            ${permitButton(index, "permit_issued", "Issued/Received", row.permit_issued)}
+            ${permitButton(index, "permit_returned", "Returned", row.permit_returned)}
+          </div>
+        </td>
+
+        <td>
+          <input
+            class="status"
+            value="${escapeHtml(row.workstatus)}"
+            placeholder="Workstatus"
+            onchange="setField(${index}, 'workstatus', this.value)"
+          >
+        </td>
+
+        <td>
+          <textarea
+            placeholder="Remarks"
+            onchange="setField(${index}, 'remarks', this.value)"
+          >${escapeHtml(row.remarks)}</textarea>
+        </td>
+
+        <td>
+          <button class="edit-btn" onclick="editRow(${index})">Edit</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  updateSummary();
+}
+
+function permitButton(index, field, label, active){
+  return `
+    <button
+      class="${active ? "active" : ""}"
+      onclick="togglePermit(${index}, '${field}')"
+    >${label}</button>
+  `;
+}
+
+/* =========================================================
+   EDIT LOCAL DATA
+========================================================= */
+function togglePermit(index, field){
+  if(!rows[index]) return;
+
+  if(
+    field !== "permit_applied" &&
+    field !== "permit_issued" &&
+    field !== "permit_returned"
+  ) return;
+
+  rows[index][field] = !Boolean(rows[index][field]);
+  dirty = true;
+  render();
+}
+
+function setField(index, field, value){
+  if(!rows[index]) return;
+
+  if(field !== "workstatus" && field !== "remarks") return;
+
+  rows[index][field] = value;
+  dirty = true;
+}
+
+function editRow(index){
+  const row = rows[index];
+  if(!row) return;
+
+  const activity = prompt("Activity name:", row.activity);
+  if(activity === null) return;
+
+  const trimmedActivity = activity.trim();
+  if(trimmedActivity) row.activity = trimmedActivity;
+
+  const workstatus = prompt("Workstatus:", row.workstatus);
+  if(workstatus !== null){
+    row.workstatus = workstatus;
+  }
+
+  const remarks = prompt("Remarks:", row.remarks);
+  if(remarks !== null){
+    row.remarks = remarks;
+  }
+
+  dirty = true;
+  render();
+}
+
+/* =========================================================
+   ADD NEW
+========================================================= */
+function newShutdown(){
+  if(saving) return;
+
+  const unit = Number(document.getElementById("unit").value);
+  const year = Number(document.getElementById("year").value);
+
+  if(savedRowsExist){
+    const confirmed = confirm(
+      "Start a new shutdown template for UNIT " + unit + " / " + year +
+      "?\n\nWhen you press Save Changes, the existing saved records " +
+      "for this unit/year will be replaced by this new template."
+    );
+
+    if(!confirmed) return;
+  }
+
+  rows = defaultRows();
+  savedRowsExist = false;
+  dirty = true;
+
+  render();
+
+  showMessage(
+    "✓ New shutdown template created. Enter your details and press Save Changes.",
+    "ok"
+  );
+
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+/* =========================================================
+   SAVE
+   - Existing records are updated by id.
+   - New rows are inserted.
+   - Old records belonging to this unit/year that are no longer
+     present are removed.
+   - This avoids creating duplicates on repeated saves.
+========================================================= */
+async function saveAll(){
+  if(saving) return;
+
+  const unit = Number(document.getElementById("unit").value);
+  const year = Number(document.getElementById("year").value);
+
+  setBusy(true);
+  clearMessage();
+
+  try{
+    const existingResult = await db
+      .from(TABLE)
+      .select("id")
+      .eq("unit", unit)
+      .eq("shutdown_year", year);
+
+    if(existingResult.error){
+      throw existingResult.error;
+    }
+
+    const existingIds = (existingResult.data || [])
+      .map(function(item){ return item.id; });
+
+    const currentIds = rows
+      .filter(function(row){ return row.id !== null && row.id !== undefined; })
+      .map(function(row){ return row.id; });
+
+    const idsToDelete = existingIds.filter(function(id){
+      return !currentIds.includes(id);
+    });
+
+    if(idsToDelete.length > 0){
+      const deleteResult = await db
+        .from(TABLE)
+        .delete()
+        .in("id", idsToDelete);
+
+      if(deleteResult.error){
+        throw deleteResult.error;
+      }
+    }
+
+    const payload = rows.map(function(row){
+      const record = {
+        unit: unit,
+        shutdown_year: year,
+        activity: row.activity || "",
+        permit_applied: Boolean(row.permit_applied),
+        permit_issued: Boolean(row.permit_issued),
+        permit_returned: Boolean(row.permit_returned),
+        workstatus: row.workstatus || "",
+        remarks: row.remarks || ""
+      };
+
+      if(row.id !== null && row.id !== undefined){
+        record.id = row.id;
+      }
+
+      return record;
+    });
+
+    if(payload.length > 0){
+      const saveResult = await db
+        .from(TABLE)
+        .upsert(payload, {onConflict:"id"})
+        .select("*");
+
+      if(saveResult.error){
+        throw saveResult.error;
+      }
+
+      rows = (saveResult.data || [])
+        .map(normalizeRow)
+        .sort(function(a,b){
+          return Number(a.id || 0) - Number(b.id || 0);
+        });
+    }
+
+    savedRowsExist = true;
+    dirty = false;
+    render();
+
+    showMessage(
+      "✓ Shutdown changes saved successfully to Supabase.",
+      "ok"
+    );
+
+  }catch(error){
+    showMessage(
+      "Could not save shutdown: " + (error.message || String(error)),
+      "err"
+    );
+  }finally{
+    setBusy(false);
+  }
+}
+
+/* =========================================================
+   DELETE ENTIRE UNIT/YEAR
+========================================================= */
+async function deleteSavedShutdown(){
+  if(saving) return;
+
+  const unit = Number(document.getElementById("unit").value);
+  const year = Number(document.getElementById("year").value);
+
+  clearMessage();
+
+  const check = await db
+    .from(TABLE)
+    .select("id")
+    .eq("unit", unit)
+    .eq("shutdown_year", year);
+
+  if(check.error){
+    showMessage(
+      "Could not check saved shutdown: " + check.error.message,
+      "err"
+    );
+    return;
+  }
+
+  if(!check.data || check.data.length === 0){
+    showMessage(
+      "No saved shutdown exists for UNIT " + unit + " / " + year + ".",
+      "ok"
+    );
+    return;
+  }
+
+  const confirmed = confirm(
+    "Delete the ENTIRE saved shutdown for UNIT " + unit + " / " + year +
+    "?\n\nThis will permanently remove all activities, permit status, " +
+    "workstatus and remarks for this unit/year."
+  );
+
+  if(!confirmed) return;
+
+  setBusy(true);
+
+  try{
+    const result = await db
+      .from(TABLE)
+      .delete()
+      .eq("unit", unit)
+      .eq("shutdown_year", year);
+
+    if(result.error){
+      throw result.error;
+    }
+
+    rows = defaultRows();
+    savedRowsExist = false;
+    dirty = false;
+
+    render();
+
+    showMessage(
+      "✓ Entire saved shutdown deleted for UNIT " + unit + " / " + year + ".",
+      "ok"
+    );
+
+  }catch(error){
+    showMessage(
+      "Could not delete shutdown: " + (error.message || String(error)),
+      "err"
+    );
+  }finally{
+    setBusy(false);
+  }
+}
+
+/* =========================================================
+   SUMMARY
+========================================================= */
+function updateSummary(){
+  const completed = rows.filter(function(row){
+    return String(row.workstatus || "")
+      .toLowerCase()
+      .includes("complete");
+  }).length;
+
+  document.getElementById("count").textContent =
+    "Activities: " + rows.length;
+
+  document.getElementById("done").textContent =
+    "Completed: " + completed;
+}
+
+/* =========================================================
+   START
+========================================================= */
+document.addEventListener("DOMContentLoaded", function(){
+  setupYears();
+
+  document.getElementById("unit")
+    .addEventListener("change", loadUnit);
+
+  document.getElementById("year")
+    .addEventListener("change", loadUnit);
+
+  loadUnit();
+});
+</script>
+</body>
+</html>
